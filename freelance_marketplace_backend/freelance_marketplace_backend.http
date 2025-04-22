@@ -1,0 +1,6 @@
+@freelance_marketplace_backend_HostAddress = http://localhost:5021
+
+GET {{freelance_marketplace_backend_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
