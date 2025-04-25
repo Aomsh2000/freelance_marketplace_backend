@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using freelance_marketplace_backend.Data;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace freelance_marketplace_backend.Controllers
@@ -12,5 +13,12 @@ namespace freelance_marketplace_backend.Controllers
         // and to implement coding best practices   
         // no database access from controllers
         // you should use this controller to access <Name>Service and use <Name>Repository from there (<Name>Service)
+        FreelancingPlatformContext context = new FreelancingPlatformContext();
+
+        [HttpGet]
+        public IActionResult getSkills() 
+        { 
+            return Ok(context.Skills.ToList());
+        }
     }
 }
