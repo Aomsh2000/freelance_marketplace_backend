@@ -26,8 +26,10 @@ public partial class Project
     public bool? IsDeleted { get; set; }
 
     public string? FreelancerId { get; set; }
+    public string? PostedBy { get; set; }
 
     public virtual User? Freelancer { get; set; }
+    public virtual User? Client { get; set; }
 
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
 

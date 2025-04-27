@@ -8,6 +8,7 @@ public partial class User
     public string Usersid { get; set; } = null!;
 
     public string Name { get; set; } = null!;
+    public string phone { get; set; } = null!;
 
     public string Email { get; set; } = null!;
 
