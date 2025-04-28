@@ -6,11 +6,29 @@ using freelance_marketplace_backend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add CORS policy
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAngularApp", policy =>
+    {
+        policy.WithOrigins("http://localhost:4200")
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext<FreelancingPlatformContext>(options =>
-    options.UseSqlServer(connectionString));
-
+    options.UseSqlServer(connectionString, sqlOptions =>
+    {
+        sqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 10,
+            maxRetryDelay: TimeSpan.FromSeconds(15),
+            errorNumbersToAdd: new[] { 4060, 40197, 40501, 49918 } // Azure SQL transient errors
+        );
+        sqlOptions.CommandTimeout(120);
+    }));
 
 builder.Configuration.AddUserSecrets<Program>();
 
@@ -25,7 +43,7 @@ if (string.IsNullOrEmpty(redisConnectionString))
 builder.Services.AddStackExchangeRedisCache(options =>
 {
     options.Configuration = redisConnectionString;
-    options.InstanceName = "FreelancerMarketplace_"; 
+    options.InstanceName = "FreelancerMarketplace_";
 });
 
 builder.Services.AddScoped<UserRepository>();
@@ -34,6 +52,14 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddControllers();
 builder.Services.AddSwaggerGen();
 
+// Add logging
+builder.Services.AddLogging(logging =>
+{
+    logging.AddConsole();
+    logging.AddDebug();
+    logging.SetMinimumLevel(LogLevel.Debug);
+});
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -41,6 +67,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+// Enable CORS before routing and authorization
+app.UseCors("AllowAngularApp");
 
 app.UseHttpsRedirection();
 app.UseAuthorization();

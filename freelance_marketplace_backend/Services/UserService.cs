@@ -14,7 +14,7 @@ namespace freelance_marketplace_backend.Services
 
         public void CreateUser(CreateUserDto user)
         {
-            _userRepository.CreateUser(user); 
+            _userRepository.CreateUserAsync(user); 
         }
     }
 }
