@@ -7,13 +7,16 @@ namespace freelance_marketplace_backend.Data;
 
 public partial class FreelancingPlatformContext : DbContext
 {
+    private readonly IConfiguration _configuration;
+
     public FreelancingPlatformContext()
     {
     }
 
-    public FreelancingPlatformContext(DbContextOptions<FreelancingPlatformContext> options)
+    public FreelancingPlatformContext(DbContextOptions<FreelancingPlatformContext> options, IConfiguration configuration)
         : base(options)
     {
+        _configuration = configuration;
     }
 
     public virtual DbSet<Chat> Chats { get; set; }
@@ -37,8 +40,14 @@ public partial class FreelancingPlatformContext : DbContext
     public virtual DbSet<UsersSkill> UsersSkills { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Server=freelancemarketplace.database.windows.net;Database=Freelancer;User Id=manager;Password=y93@34t@BYyRj5g;Encrypt=True;TrustServerCertificate=True;");
+    {
+        if (!optionsBuilder.IsConfigured)
+        {
+            var connectionString = _configuration.GetConnectionString("DefaultConnection");
+            optionsBuilder.UseSqlServer(connectionString);
+        }
+    }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
