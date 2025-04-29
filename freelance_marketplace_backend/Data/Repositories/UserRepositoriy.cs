@@ -51,14 +51,15 @@ namespace freelance_marketplace_backend.Data.Repositories
                     throw new ArgumentException("Name is required.", nameof(user.Name));
                 }
 
-                // Check for duplicate user
+                // Check for duplicate user and exit silently if found
                 _logger.LogDebug("Checking for duplicate user with ID {UserId}", user.UserId);
                 if (await _context.Users.AnyAsync(u => u.Usersid == user.UserId, cancellationToken))
                 {
-                    _logger.LogWarning("User with ID {UserId} already exists.", user.UserId);
-                    throw new InvalidOperationException($"User with ID {user.UserId} already exists.");
+                    _logger.LogDebug("User with ID {UserId} already exists. Exiting without creating user.", user.UserId);
+                    return; // Exit silently
                 }
 
+                // Check for duplicate email
                 _logger.LogDebug("Checking for duplicate email {Email}", user.Email);
                 if (await _context.Users.AnyAsync(u => u.Email == user.Email, cancellationToken))
                 {
