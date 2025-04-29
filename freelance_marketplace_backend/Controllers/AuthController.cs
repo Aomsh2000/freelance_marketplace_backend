@@ -36,7 +36,7 @@ namespace freelance_marketplace_backend.Controllers
             var user = await _context.Users
                 .Where(u => u.Usersid == userId && (u.IsDeleted == null || u.IsDeleted == false))
                 .Include(u => u.UsersSkills).ThenInclude(us => us.Skill)
-                .Include(u => u.Projects)
+                .Include(u => u.ProjectFreelancers)
                 .ThenInclude(p => p.ProjectSkills)
                 .ThenInclude(ps => ps.Skill)
                 .FirstOrDefaultAsync();
@@ -51,7 +51,7 @@ namespace freelance_marketplace_backend.Controllers
                 UserId = user.Usersid,
                 Name = user.Name,
                 Email = user.Email,
-                Phone = user.phone,
+                Phone = user.Phone,
                 ImageUrl = user.ImageUrl,
                 AboutMe = user.AboutMe,
                 Rating = user.Rating,
@@ -62,7 +62,7 @@ namespace freelance_marketplace_backend.Controllers
                     Skill = us.Skill.Skill1,
                     Category = us.Skill.Category
                 }).ToList(),
-                Projects = user.Projects
+                Projects = user.ProjectFreelancers
                     .Where(p => p.Status == "Completed" && p.FreelancerId == userId)
                     .Select(p => new ProfileProjectDto
                     {
