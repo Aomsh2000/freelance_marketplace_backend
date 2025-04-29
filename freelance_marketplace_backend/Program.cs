@@ -3,6 +3,7 @@ using freelance_marketplace_backend.Data;
 using freelance_marketplace_backend.Data.Repositories;
 using freelance_marketplace_backend.Interfaces;
 using freelance_marketplace_backend.Services;
+using freelance_marketplace_backend.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,8 +48,9 @@ builder.Services.AddStackExchangeRedisCache(options =>
 });
 
 builder.Services.AddScoped<UserRepository>();
+builder.Services.AddScoped<ChatRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
-
+builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddControllers();
 builder.Services.AddSwaggerGen();
 
@@ -67,7 +69,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
+app.MapHub<ChatHub>("/chatHub");
 // Enable CORS before routing and authorization
 app.UseCors("AllowAngularApp");
 
