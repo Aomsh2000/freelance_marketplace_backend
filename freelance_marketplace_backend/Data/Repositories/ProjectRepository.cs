@@ -86,51 +86,51 @@ namespace freelance_marketplace_backend.Data.Repositories
             return "Success";
         }
 
-        public async Task<ProjectDetailsDto?> GetProjectByIdAsync(int projectId)
-        {
-            var project = await _context.Projects
-                .Include(p => p.PostedByNavigation) 
-                .Include(p => p.ProjectSkills).ThenInclude(ps => ps.Skill)
-                .Include(p => p.Proposals).ThenInclude(pr => pr.Freelancer)
-                .FirstOrDefaultAsync(p => p.ProjectId == projectId && p.IsDeleted == false);
+        //public async Task<ProjectDetailsDto?> GetProjectByIdAsync(int projectId)
+        //{
+        //    var project = await _context.Projects
+        //        .Include(p => p.PostedByNavigation) 
+        //        .Include(p => p.ProjectSkills).ThenInclude(ps => ps.Skill)
+        //        .Include(p => p.Proposals).ThenInclude(pr => pr.Freelancer)
+        //        .FirstOrDefaultAsync(p => p.ProjectId == projectId && p.IsDeleted == false);
 
-            if (project == null) return null;
+        //    if (project == null) return null;
 
-            return new ProjectDetailsDto
-            {
-                ProjectId = project.ProjectId,
-                Title = project.Title,
-                ProjectOverview = project.Overview,
-                RequiredTasks = project.RequiredTasks,
-                AdditionalNotes = project.AdditionalNotes ?? "",
-                Budget = project.Budget,
-                Deadline = project.Deadline,
-                Status = project.Status,
-                PostedBy = project.PostedBy,
-                ClientName = project.PostedByNavigation?.Name ?? "",
-                CreatedAt = project.CreatedAt,
+        //    return new ProjectDetailsDto
+        //    {
+        //        ProjectId = project.ProjectId,
+        //        Title = project.Title,
+        //        ProjectOverview = project.Overview,
+        //        RequiredTasks = project.RequiredTasks,
+        //        AdditionalNotes = project.AdditionalNotes ?? "",
+        //        Budget = project.Budget,
+        //        Deadline = project.Deadline,
+        //        Status = project.Status,
+        //        PostedBy = project.PostedBy,
+        //        ClientName = project.PostedByNavigation?.Name ?? "",
+        //        CreatedAt = project.CreatedAt,
 
-                Proposals = project.Proposals.Select(pr => new ProposalDto
-                {
-                    ProposalId = pr.ProposalId,
-                    ProjectId = pr.ProjectId,
-                    FreelancerId = pr.FreelancerId,
-                    FreelancerName = pr.Freelancer?.Name ?? "",
-                    ProposedAmount = pr.ProposedAmount,
-                    Deadline = pr.Deadline,
-                    CoverLetter = pr.CoverLetter,
-                    Status = pr.Status,
-                    CreatedAt = pr.CreatedAt
-                }).ToList(),
+        //        Proposals = project.Proposals.Select(pr => new ProposalDto
+        //        {
+        //            ProposalId = pr.ProposalId,
+        //            ProjectId = pr.ProjectId,
+        //            FreelancerId = pr.FreelancerId,
+        //            FreelancerName = pr.Freelancer?.Name ?? "",
+        //            ProposedAmount = pr.ProposedAmount,
+        //            Deadline = pr.Deadline,
+        //            CoverLetter = pr.CoverLetter,
+        //            Status = pr.Status,
+        //            CreatedAt = pr.CreatedAt
+        //        }).ToList(),
 
-                Skills = project.ProjectSkills.Select(ps => new SkillDto
-                {
-                    SkillId = ps.Skill.SkillId,
-                    Skill = ps.Skill.Skill1,
-                    Category = ps.Skill.Category
-                }).ToList()
-            };
-        }
+        //        Skills = project.ProjectSkills.Select(ps => new SkillDto
+        //        {
+        //            SkillId = ps.Skill.SkillId,
+        //            Skill = ps.Skill.Skill1,
+        //            Category = ps.Skill.Category
+        //        }).ToList()
+        //    };
+        //}
 
     }
 }

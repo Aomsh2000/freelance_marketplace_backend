@@ -87,17 +87,17 @@ namespace freelance_marketplace_backend.Controllers
             return Ok($"Project with ID {id} has been marked as deleted.");
         }
 
-        // GET: api/projects/{id}
-        [HttpGet("{id:int}")]
-        [Authorize]
-        public async Task<IActionResult> GetProjectById(int id)
-        {
-            var project = await _projectRepository.GetProjectByIdAsync(id);
-            if (project == null)
-                return NotFound($"Project with ID {id} not found.");
+        //// GET: api/projects/{id}
+        //[HttpGet("{id:int}")]
+        //[Authorize]
+        //public async Task<IActionResult> GetProjectById(int id)
+        //{
+        //    var project = await _projectRepository.GetProjectByIdAsync(id);
+        //    if (project == null)
+        //        return NotFound($"Project with ID {id} not found.");
 
-            return Ok(project);
-        }
+        //    return Ok(project);
+        //}
 
         // PUT: api/projects/{projectId}/assign
         [HttpPut("{projectId}/assign")]
