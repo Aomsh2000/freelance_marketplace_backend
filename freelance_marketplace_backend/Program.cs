@@ -3,6 +3,9 @@ using freelance_marketplace_backend.Data;
 using freelance_marketplace_backend.Data.Repositories;
 using freelance_marketplace_backend.Interfaces;
 using freelance_marketplace_backend.Services;
+using freelance_marketplace_backend.Services.freelance_marketplace_backend.Services;
+
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +15,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowAngularApp", policy =>
     {
         policy.WithOrigins("http://localhost:4200")
+
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
@@ -48,6 +52,9 @@ builder.Services.AddStackExchangeRedisCache(options =>
 
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IProposalService,ProposalService>();
+builder.Services.AddScoped<IProjectService, ProjectService>();
+
 
 builder.Services.AddScoped<ProjectRepository>();
 
