@@ -27,5 +27,4 @@
 
 		public List<ProposalDto> Proposals { get; set; } = new(); // List of proposals submitted for this project
 	}
-
 }
