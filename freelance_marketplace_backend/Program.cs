@@ -50,8 +50,12 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.InstanceName = "FreelancerMarketplace_";
 });
 
+// Add services to the container.
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ClientProjectRepository>();
+builder.Services.AddScoped<IClientProjectService, ClientProjectService>();
+
 builder.Services.AddScoped<IProposalService,ProposalService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 
