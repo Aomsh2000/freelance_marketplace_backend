@@ -20,7 +20,6 @@ namespace freelance_marketplace_backend.Services
             _cache = cache;
         }
 
-        // service give implementation to the interfaces
         public async Task<List<ViewClientApprovedProjectDto>> GetClientApprovedProjects(string userID)
         {
             //Caching
@@ -62,13 +61,22 @@ namespace freelance_marketplace_backend.Services
             return projectDtos;
         }
 
-        public Task<bool> MarkProjectAsCompleted(int projectId)
+        public async Task<bool> MarkProjectAsCompleted(int projectId)
         {
-            var approvedProjectsDone =  _clientProjectRepository.MarkProjectAsCompleted(projectId);
-            return approvedProjectsDone;
-
-            // and possibly clear the cache for the specific user
+            var success = await _clientProjectRepository.MarkProjectAsCompleted(projectId);
+            if (success)
+            {
+                // Get the user ID of the client who owns this project
+                var userId = await _clientProjectRepository.GetClientUserIdByProjectIdAsync(projectId);
+                if (!string.IsNullOrEmpty(userId))
+                {
+                    string cacheKey = $"approved_projects_{userId}";
+                    await _cache.RemoveAsync(cacheKey); // Clear cache for this user
+                }
+            }
+            return success;
         }
+
 
 
     }

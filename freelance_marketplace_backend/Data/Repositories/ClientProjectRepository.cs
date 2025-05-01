@@ -39,5 +39,12 @@ namespace freelance_marketplace_backend.Data.Repositories
             return true;
         }
 
+        public async Task<string?> GetClientUserIdByProjectIdAsync(int projectId)
+        {
+            var project = await _context.Projects.FindAsync(projectId);
+            return project?.PostedBy;
+        }
+
+
     }
 }
