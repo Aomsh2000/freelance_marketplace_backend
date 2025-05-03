@@ -9,16 +9,20 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 
 namespace freelance_marketplace_backend.Controllers
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class ProjectsController : ControllerBase
-    {
+	[Route("api/[controller]")]
+	[ApiController]
+	[Authorize]
+	public class ProjectsController : ControllerBase
+	{
+		private readonly IProjectService _projectService;
+		private readonly IDistributedCache _cache;
+   
         private readonly ProjectRepository _projectRepository;
-        private readonly IProjectService _projectService;
-        private readonly IDistributedCache _cache;
+       
 
         public ProjectsController(
             ProjectRepository projectRepository,
@@ -87,32 +91,51 @@ namespace freelance_marketplace_backend.Controllers
             return Ok($"Project with ID {id} has been marked as deleted.");
         }
 
-        //// GET: api/projects/{id}
-        //[HttpGet("{id:int}")]
-        //[Authorize]
-        //public async Task<IActionResult> GetProjectById(int id)
-        //{
-        //    var project = await _projectRepository.GetProjectByIdAsync(id);
-        //    if (project == null)
-        //        return NotFound($"Project with ID {id} not found.");
+		// PUT: api/projects/{projectsid}/assign 
 
-        //    return Ok(project);
-        //}
+		[HttpPut("{projectId}/assign")]
+		[Authorize]
+		public async Task<IActionResult> AssignProjectToFreelancer(int projectId, [FromBody] AssignProjectDto model)
+		{
+			try
+			{
+				//extract userid from token
+				var uid = User.FindFirst("user_id")?.Value;
 
-        // PUT: api/projects/{projectId}/assign
-        [HttpPut("{projectId}/assign")]
-        public async Task<IActionResult> AssignProjectToFreelancer(int projectId, [FromBody] AssignProjectDto model)
-        {
-            var result = await _projectService.AssignProjectToFreelancer(projectId, model);
 
-            if (result == null)
-                return NotFound("Project or Proposal not found, or insufficient balance");
+				if (uid == null)
+				{
+					return Unauthorized("Unauthorized: user_id is missing in the token.");
+				}
 
-            // Invalidate cache
-            var cacheKey = $"project:{projectId}";
-            await _cache.RemoveAsync(cacheKey);
+				// Request the assignment from the service
+				var result = await _projectService.AssignProjectToFreelancer(projectId, model, uid);
 
-            return Ok(result);
-        }
-    }
-}
+				if (result == null)
+				{
+					return NotFound("Project or proposal not found.");
+				}
+				// Invalidate the cache for the project after assignment
+				await _cache.RemoveAsync($"project:{projectId}");
+				// Return the updated project details
+				return Ok(result);
+			}
+			catch (UnauthorizedAccessException ex)
+			{
+				return Forbid(ex.Message);
+			}
+			// Handle any InvalidOperationException (e.g., trying to assign a freelancer to a project already assigned)
+			catch (InvalidOperationException ex)
+			{
+				return Conflict(new { message = ex.Message });
+			}
+			// Handle any other unexpected errors
+			catch (Exception ex)
+			{
+				return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
+			}
+		}
+	}
+
+	}
+          

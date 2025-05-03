@@ -74,6 +74,7 @@ builder.Services.AddLogging(logging =>
 });
 
 
+
 builder.Services.AddAuthentication("Bearer")
     .AddJwtBearer("Bearer", options =>
     {
