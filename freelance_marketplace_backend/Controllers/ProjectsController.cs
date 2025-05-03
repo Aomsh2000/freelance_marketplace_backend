@@ -7,11 +7,13 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 
 namespace freelance_marketplace_backend.Controllers
 {
 	[Route("api/[controller]")]
 	[ApiController]
+	[Authorize]
 	public class ProjectsController : ControllerBase
 	{
 		private readonly IProjectService _projectService;
@@ -23,26 +25,48 @@ namespace freelance_marketplace_backend.Controllers
 			_cache = cache;
 		}
 
-		// PUT: api/projects/{projectId}/assign
+
 		[HttpPut("{projectId}/assign")]
 		public async Task<IActionResult> AssignProjectToFreelancer(int projectId, [FromBody] AssignProjectDto model)
 		{
-			var result = await _projectService.AssignProjectToFreelancer(projectId, model);
-
-			if (result == null)
+			try
 			{
-				return NotFound("Project or Proposal not found, or insufficient balance");
+				//extract userid from token
+				var uid = User.FindFirst("user_id")?.Value;
+
+
+				if (uid == null)
+				{
+					return Unauthorized("Unauthorized: user_id is missing in the token.");
+				}
+
+				// Request the assignment from the service
+				var result = await _projectService.AssignProjectToFreelancer(projectId, model, uid);
+
+				if (result == null)
+				{
+					return NotFound("Project or proposal not found.");
+				}
+				// Invalidate the cache for the project after assignment
+				await _cache.RemoveAsync($"project:{projectId}");
+				// Return the updated project details
+				return Ok(result);
 			}
-
-			// Invalidate (remove) cache for the project after assignment
-			var cacheKey = $"project:{projectId}";
-			await _cache.RemoveAsync(cacheKey);
-
-			return Ok(result); // return the updated project details
+			catch (UnauthorizedAccessException ex)
+			{
+				return Forbid(ex.Message);
+			}
+			// Handle any InvalidOperationException (e.g., trying to assign a freelancer to a project already assigned)
+			catch (InvalidOperationException ex)
+			{
+				return Conflict(new { message = ex.Message });
+			}
+				// Handle any other unexpected errors
+			catch (Exception ex)
+			{
+				return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
+			}
 		}
-
-
-
 
 	}
 }
