@@ -50,11 +50,17 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.InstanceName = "FreelancerMarketplace_";
 });
 
+// Add services to the container.
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ClientProjectRepository>();
+builder.Services.AddScoped<IClientProjectService, ClientProjectService>();
+
 builder.Services.AddScoped<IProposalService,ProposalService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 
+
+builder.Services.AddScoped<ProjectRepository>();
 
 builder.Services.AddControllers();
 builder.Services.AddSwaggerGen();
@@ -67,21 +73,25 @@ builder.Services.AddLogging(logging =>
     logging.SetMinimumLevel(LogLevel.Debug);
 });
 
+
+
 builder.Services.AddAuthentication("Bearer")
-	.AddJwtBearer("Bearer", options =>
-	{
-		options.Authority = "https://securetoken.google.com/freelance-marketplace-caf38";
-		options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
-		{
-			ValidateIssuer = true,
-			ValidIssuer = "https://securetoken.google.com/freelance-marketplace-caf38",
-			ValidateAudience = true,
-			ValidAudience = "freelance-marketplace-caf38",
-			ValidateLifetime = true
-		};
-	});
+    .AddJwtBearer("Bearer", options =>
+    {
+        options.Authority = "https://securetoken.google.com/freelance-marketplace-caf38";
+        options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = "https://securetoken.google.com/freelance-marketplace-caf38",
+            ValidateAudience = true,
+            ValidAudience = "freelance-marketplace-caf38",
+            ValidateLifetime = true
+        };
+    });
 
 builder.Services.AddAuthorization();
+
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())

@@ -20,5 +20,4 @@
 		public string ProfilePictureUrl { get; set; } = null!; // URL of the freelancer's profile picture
 		public DateTime CreatedAt { get; set; } // Date and time when the proposal was created
 	}
-
 }
