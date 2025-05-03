@@ -8,7 +8,8 @@
         public decimal Budget { get; set; }
         public DateOnly Deadline { get; set; }
         public string Status { get; set; }
-        public FreelancerSummaryDto? Freelancer { get; set; } 
-        public List<SkillDto> Skills { get; set; }    
+        public FreelancerSummaryDto? Freelancer { get; set; }
+        public List<SkillDto> Skills { get; set; }
+        public string PostedBy { get; set; }
     }
 }
