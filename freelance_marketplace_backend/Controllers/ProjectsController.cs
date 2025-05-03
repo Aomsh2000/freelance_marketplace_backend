@@ -91,6 +91,7 @@ namespace freelance_marketplace_backend.Controllers
             return Ok($"Project with ID {id} has been marked as deleted.");
         }
 
+		// PUT: api/projects/{projectsid}/assign 
 
 		[HttpPut("{projectId}/assign")]
 		[Authorize]
