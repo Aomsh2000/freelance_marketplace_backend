@@ -103,6 +103,7 @@ namespace freelance_marketplace_backend.Services
                     OtherUserName = otherUser?.Name,
                     LastMessage = lastMessage?.Content,
                     LastMessageTime = lastMessage?.SentAt,
+                    LastMessageSenderId = lastMessage?.SenderId,
                     IsLastMessageFromMe = lastMessage != null && lastMessage.SenderId == userId
                 });
             }
@@ -141,9 +142,56 @@ namespace freelance_marketplace_backend.Services
                 // Log the outgoing message
                 _logger.LogInformation($"Broadcasting message ID {message.MessageId} to chat group {chatId}");
 
-                // Broadcast to all clients in the chat group using SignalR
-                await _hubContext.Clients.Group(chatId.ToString())
-                    .SendAsync("ReceiveMessage", messageDto);
+                try
+                {
+                    // Broadcast to all clients in the chat group using SignalR
+                    await _hubContext.Clients.Group(chatId.ToString())
+                        .SendAsync("ReceiveMessage", messageDto);
+
+                    _logger.LogInformation($"Successfully broadcast message to chat group {chatId}");
+                }
+                catch (Exception ex)
+                {
+                    // Log error but don't fail the operation - client can retrieve messages on refresh
+                    _logger.LogError(ex, $"Error broadcasting message to chat group {chatId}: {ex.Message}");
+                }
+
+                // Try to re-broadcast after a delay to help with race conditions
+                // where clients might just be connecting
+                try
+                {
+                    await Task.Delay(1000); // Wait 1 second before re-broadcasting
+
+                    // Broadcast again in case any clients missed it
+                    await _hubContext.Clients.Group(chatId.ToString())
+                        .SendAsync("ReceiveMessage", messageDto);
+
+                    _logger.LogInformation($"Re-broadcast message to chat group {chatId}");
+                }
+                catch (Exception ex)
+                {
+                    // Just log, don't fail the operation
+                    _logger.LogError(ex, $"Error re-broadcasting message to chat group {chatId}: {ex.Message}");
+                }
+
+                // Also broadcast to specific users directly as a fallback
+                try
+                {
+                    if (!string.IsNullOrEmpty(chat.ClientId))
+                    {
+                        await _hubContext.Clients.User(chat.ClientId).SendAsync("ReceiveMessage", messageDto);
+                    }
+
+                    if (!string.IsNullOrEmpty(chat.FreelancerId))
+                    {
+                        await _hubContext.Clients.User(chat.FreelancerId).SendAsync("ReceiveMessage", messageDto);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Just log, don't fail the operation
+                    _logger.LogError(ex, $"Error broadcasting message to specific users: {ex.Message}");
+                }
 
                 // The sender gets a different version with IsFromMe = true
                 messageDto.IsFromMe = true;

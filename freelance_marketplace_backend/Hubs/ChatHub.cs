@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace freelance_marketplace_backend.Hubs
@@ -8,6 +9,8 @@ namespace freelance_marketplace_backend.Hubs
     public class ChatHub : Hub
     {
         private readonly ILogger<ChatHub> _logger;
+        private static readonly Dictionary<string, HashSet<string>> _userConnections = new Dictionary<string, HashSet<string>>();
+        private static readonly Dictionary<string, HashSet<string>> _chatGroups = new Dictionary<string, HashSet<string>>();
 
         public ChatHub(ILogger<ChatHub> logger)
         {
@@ -22,9 +25,18 @@ namespace freelance_marketplace_backend.Hubs
                 string connectionId = Context.ConnectionId;
                 _logger.LogInformation($"Connection {connectionId} joining chat {chatId}");
 
+                // Add to group
                 await Groups.AddToGroupAsync(connectionId, chatId);
 
+                // Track chat membership
+                if (!_chatGroups.ContainsKey(chatId))
+                {
+                    _chatGroups[chatId] = new HashSet<string>();
+                }
+                _chatGroups[chatId].Add(connectionId);
+
                 _logger.LogInformation($"Connection {connectionId} successfully joined chat {chatId}");
+                _logger.LogInformation($"Chat {chatId} now has {_chatGroups[chatId].Count} connections");
 
                 // Confirm join successful
                 await Clients.Caller.SendAsync("JoinChatSuccess", chatId);
@@ -49,6 +61,16 @@ namespace freelance_marketplace_backend.Hubs
 
                 await Groups.RemoveFromGroupAsync(connectionId, chatId);
 
+                // Update tracking
+                if (_chatGroups.ContainsKey(chatId))
+                {
+                    _chatGroups[chatId].Remove(connectionId);
+                    if (_chatGroups[chatId].Count == 0)
+                    {
+                        _chatGroups.Remove(chatId);
+                    }
+                }
+
                 _logger.LogInformation($"Connection {connectionId} successfully left chat {chatId}");
 
                 // Confirm leave successful
@@ -64,6 +86,22 @@ namespace freelance_marketplace_backend.Hubs
             }
         }
 
+        // Register user ID with connection
+        public async Task RegisterUser(string userId)
+        {
+            string connectionId = Context.ConnectionId;
+            _logger.LogInformation($"Registering user {userId} with connection {connectionId}");
+
+            // Add to user connections
+            if (!_userConnections.ContainsKey(userId))
+            {
+                _userConnections[userId] = new HashSet<string>();
+            }
+            _userConnections[userId].Add(connectionId);
+
+            await Clients.Caller.SendAsync("UserRegistered", userId);
+        }
+
         // Connection handling
         public override async Task OnConnectedAsync()
         {
@@ -75,6 +113,32 @@ namespace freelance_marketplace_backend.Hubs
         public override async Task OnDisconnectedAsync(Exception exception)
         {
             string connectionId = Context.ConnectionId;
+
+            // Remove from all chat groups
+            foreach (var chatGroup in _chatGroups)
+            {
+                if (chatGroup.Value.Contains(connectionId))
+                {
+                    chatGroup.Value.Remove(connectionId);
+                    if (chatGroup.Value.Count == 0)
+                    {
+                        _chatGroups.Remove(chatGroup.Key);
+                    }
+                }
+            }
+
+            // Remove from user connections
+            foreach (var userConnection in _userConnections)
+            {
+                if (userConnection.Value.Contains(connectionId))
+                {
+                    userConnection.Value.Remove(connectionId);
+                    if (userConnection.Value.Count == 0)
+                    {
+                        _userConnections.Remove(userConnection.Key);
+                    }
+                }
+            }
 
             if (exception != null)
             {
