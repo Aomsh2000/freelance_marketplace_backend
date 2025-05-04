@@ -15,37 +15,47 @@ namespace freelance_marketplace_backend.Data.Repositories
 
         public async Task<List<ProjectSummaryDto>> GetProjectsByUserAsync(string userId)
         {
-            var projects = await _context.Projects
-                .Where(p => p.PostedBy == userId && p.IsDeleted == false)
+            var projects = await _context
+                .Projects.Where(p => p.PostedBy == userId && p.IsDeleted == false)
                 .Include(p => p.Freelancer)
                 .Include(p => p.ProjectSkills)
-                    .ThenInclude(ps => ps.Skill)
+                .ThenInclude(ps => ps.Skill)
                 .ToListAsync();
 
-            return projects.Select(p => new ProjectSummaryDto
-            {
-                ProjectId = p.ProjectId,
-                Title = p.Title,
-                Overview = p.Overview,
-                Budget = p.Budget,
-                Deadline = p.Deadline,
-                Status = p.Status,
-                Freelancer = p.Freelancer != null ? new FreelancerSummaryDto
+            return projects
+                .Select(p => new ProjectSummaryDto
                 {
-                    FreelancerId = p.Freelancer.Usersid,
-                    FreelancerName = p.Freelancer.Name // adjust as needed
-                } : null,
-                Skills = p.ProjectSkills.Select(ps => new SkillDto
-                {
-                    SkillId = ps.Skill.SkillId,
-                    Skill = ps.Skill.Skill1,
-                    Category = ps.Skill.Category
-                }).ToList()
-            }).ToList();
+                    ProjectId = p.ProjectId,
+                    Title = p.Title,
+                    Overview = p.Overview,
+                    Budget = p.Budget,
+                    Deadline = p.Deadline,
+                    Status = p.Status,
+                    Freelancer =
+                        p.Freelancer != null
+                            ? new FreelancerSummaryDto
+                            {
+                                FreelancerId = p.Freelancer.Usersid,
+                                FreelancerName = p.Freelancer.Name, // adjust as needed
+                            }
+                            : null,
+                    Skills = p
+                        .ProjectSkills.Select(ps => new SkillDto
+                        {
+                            SkillId = ps.Skill.SkillId,
+                            Skill = ps.Skill.Skill1,
+                            Category = ps.Skill.Category,
+                        })
+                        .ToList(),
+                })
+                .ToList();
         }
 
-
-        public async Task AddProjectAsync(Project project, List<SkillDto>? skills, CancellationToken cancellationToken)
+        public async Task AddProjectAsync(
+            Project project,
+            List<SkillDto>? skills,
+            CancellationToken cancellationToken
+        )
         {
             _context.Projects.Add(project);
             await _context.SaveChangesAsync(cancellationToken);
@@ -58,14 +68,19 @@ namespace freelance_marketplace_backend.Data.Repositories
                 {
                     if (skill != null && skill.SkillId > 0)
                     {
-                        var skillExists = await _context.Skills.AnyAsync(s => s.SkillId == skill.SkillId, cancellationToken);
+                        var skillExists = await _context.Skills.AnyAsync(
+                            s => s.SkillId == skill.SkillId,
+                            cancellationToken
+                        );
                         if (skillExists)
                         {
-                            projectSkills.Add(new ProjectSkill
-                            {
-                                SkillId = skill.SkillId,
-                                ProjectId = project.ProjectId
-                            });
+                            projectSkills.Add(
+                                new ProjectSkill
+                                {
+                                    SkillId = skill.SkillId,
+                                    ProjectId = project.ProjectId,
+                                }
+                            );
                         }
                     }
                 }
@@ -75,11 +90,20 @@ namespace freelance_marketplace_backend.Data.Repositories
             }
         }
 
-        public async Task<string> MarkProjectAsDeletedAsync(int projectId, string userId, CancellationToken cancellationToken)
+        public async Task<string> MarkProjectAsDeletedAsync(
+            int projectId,
+            string userId,
+            CancellationToken cancellationToken
+        )
         {
-            var existingProject = await _context.Projects.FindAsync(new object[] { projectId }, cancellationToken);
-            if (existingProject == null) return "NotFound";
-            if (existingProject.PostedBy != userId) return "Unauthorized";
+            var existingProject = await _context.Projects.FindAsync(
+                new object[] { projectId },
+                cancellationToken
+            );
+            if (existingProject == null)
+                return "NotFound";
+            if (existingProject.PostedBy != userId)
+                return "Unauthorized";
 
             existingProject.IsDeleted = true;
             await _context.SaveChangesAsync(cancellationToken);
@@ -89,7 +113,7 @@ namespace freelance_marketplace_backend.Data.Repositories
         //public async Task<ProjectDetailsDto?> GetProjectByIdAsync(int projectId)
         //{
         //    var project = await _context.Projects
-        //        .Include(p => p.PostedByNavigation) 
+        //        .Include(p => p.PostedByNavigation)
         //        .Include(p => p.ProjectSkills).ThenInclude(ps => ps.Skill)
         //        .Include(p => p.Proposals).ThenInclude(pr => pr.Freelancer)
         //        .FirstOrDefaultAsync(p => p.ProjectId == projectId && p.IsDeleted == false);
@@ -132,5 +156,15 @@ namespace freelance_marketplace_backend.Data.Repositories
         //    };
         //}
 
+        public async Task<List<Project>> GetProjectsByFreelancerAsync(string freelancerId)
+        {
+            return await _context
+                .Projects.Where(p => p.FreelancerId == freelancerId && p.IsDeleted == false)
+                .Include(p => p.ProjectSkills)
+                .ThenInclude(ps => ps.Skill)
+                .Include(p => p.PostedByNavigation) // Add PostedBy navigation to include the postedBy user details
+                .Include(p => p.Freelancer) // Add Freelancer navigation to include freelancer details
+                .ToListAsync();
+        }
     }
 }
