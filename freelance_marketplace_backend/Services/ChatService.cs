@@ -42,33 +42,46 @@ namespace freelance_marketplace_backend.Services
             };
         }
 
+        // In ChatService.cs, update the CreateChatAsync method to include user information
+
         public async Task<ChatDTO> CreateChatAsync(CreateChatDto request)
         {
             // Check if chat already exists
             var existingChat = await _chatRepository.GetChatByClientAndFreelancerAsync(
                 request.ClientId, request.FreelancerId);
 
+            Chat chat;
             if (existingChat != null)
             {
-                // Return existing chat
-                return new ChatDTO
-                {
-                    ChatId = existingChat.ChatId,
-                    ClientId = existingChat.ClientId,
-                    FreelancerId = existingChat.FreelancerId,
-                    StartedAt = existingChat.StartedAt
-                };
+                // Use existing chat
+                chat = existingChat;
+            }
+            else
+            {
+                // Create new chat
+                chat = await _chatRepository.CreateChatAsync(request.ClientId, request.FreelancerId);
             }
 
-            // Create new chat
-            var chat = await _chatRepository.CreateChatAsync(request.ClientId, request.FreelancerId);
+            // Get the other user information
+            // First determine which user is the "other" user relative to the requester
+            var otherUserId = request.ClientId == chat.ClientId ? chat.FreelancerId : chat.ClientId;
 
+            // Load the full chat with user details
+            var fullChat = await _chatRepository.GetChatByIdAsync(chat.ChatId);
+            var otherUser = otherUserId == fullChat.ClientId ? fullChat.Client : fullChat.Freelancer;
+
+            // Return enhanced DTO with the other user's name
             return new ChatDTO
             {
                 ChatId = chat.ChatId,
                 ClientId = chat.ClientId,
                 FreelancerId = chat.FreelancerId,
-                StartedAt = chat.StartedAt
+                StartedAt = chat.StartedAt,
+                OtherUserName = otherUser?.Name ?? "Unknown User", // Include the name
+                                                                   // Include other fields as needed
+                LastMessage = null,
+                LastMessageTime = null,
+                IsLastMessageFromMe = false
             };
         }
 

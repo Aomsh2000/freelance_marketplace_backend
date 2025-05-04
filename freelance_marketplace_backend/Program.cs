@@ -14,12 +14,12 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins("http://localhost:4200")
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials(); // Required for SignalR
     });
 });
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
 builder.Services.AddDbContext<FreelancingPlatformContext>(options =>
     options.UseSqlServer(connectionString, sqlOptions =>
     {
@@ -47,6 +47,9 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.InstanceName = "FreelancerMarketplace_";
 });
 
+// Add SignalR services - ADD THIS LINE
+builder.Services.AddSignalR();
+
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<ChatRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
@@ -69,12 +72,15 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-app.MapHub<ChatHub>("/chatHub");
+
 // Enable CORS before routing and authorization
 app.UseCors("AllowAngularApp");
 
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
+
+// Map the hub AFTER all other middleware
+app.MapHub<ChatHub>("/chatHub");
 
 app.Run();
