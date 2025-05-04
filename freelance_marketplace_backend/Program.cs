@@ -3,7 +3,12 @@ using freelance_marketplace_backend.Data.Repositories;
 using freelance_marketplace_backend.Interfaces;
 using freelance_marketplace_backend.Services;
 using freelance_marketplace_backend.Services.freelance_marketplace_backend.Services;
+
+using Stripe;
+using freelance_marketplace_backend.Models;
+
 using Microsoft.EntityFrameworkCore;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +23,14 @@ builder.Services.AddCors(options =>
         }
     );
 });
+
+//Stripe configuration
+//Retrieve the Stripe API keys from appsettings.json
+StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];
+builder.Services.Configure<StripeSettings>(
+  builder.Configuration.GetSection("Stripe")
+);
+
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
