@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace freelance_marketplace_backend.Services
 {
@@ -16,13 +17,16 @@ namespace freelance_marketplace_backend.Services
     {
         private readonly ChatRepository _chatRepository;
         private readonly IHubContext<ChatHub> _hubContext;
+        private readonly ILogger<ChatService> _logger;
 
         public ChatService(
             ChatRepository chatRepository,
-            IHubContext<ChatHub> hubContext)
+            IHubContext<ChatHub> hubContext,
+            ILogger<ChatService> logger)
         {
             _chatRepository = chatRepository;
             _hubContext = hubContext;
+            _logger = logger;
         }
 
         public async Task<ChatCheckResponseDTO> CheckChatExistsAsync(string userId1, string userId2)
@@ -41,8 +45,6 @@ namespace freelance_marketplace_backend.Services
                 ChatId = chat.ChatId
             };
         }
-
-        // In ChatService.cs, update the CreateChatAsync method to include user information
 
         public async Task<ChatDTO> CreateChatAsync(CreateChatDto request)
         {
@@ -63,22 +65,19 @@ namespace freelance_marketplace_backend.Services
             }
 
             // Get the other user information
-            // First determine which user is the "other" user relative to the requester
             var otherUserId = request.ClientId == chat.ClientId ? chat.FreelancerId : chat.ClientId;
 
             // Load the full chat with user details
             var fullChat = await _chatRepository.GetChatByIdAsync(chat.ChatId);
             var otherUser = otherUserId == fullChat.ClientId ? fullChat.Client : fullChat.Freelancer;
 
-            // Return enhanced DTO with the other user's name
             return new ChatDTO
             {
                 ChatId = chat.ChatId,
                 ClientId = chat.ClientId,
                 FreelancerId = chat.FreelancerId,
                 StartedAt = chat.StartedAt,
-                OtherUserName = otherUser?.Name ?? "Unknown User", // Include the name
-                                                                   // Include other fields as needed
+                OtherUserName = otherUser?.Name ?? "Unknown User",
                 LastMessage = null,
                 LastMessageTime = null,
                 IsLastMessageFromMe = false
@@ -113,32 +112,48 @@ namespace freelance_marketplace_backend.Services
 
         public async Task<MessageDTO> SendMessageAsync(int chatId, SendMessageDTO request)
         {
-            // Validate user is part of the chat
-            var isUserInChat = await _chatRepository.IsUserInChatAsync(chatId, request.SenderId);
-            if (!isUserInChat)
+            try
             {
-                throw new UnauthorizedAccessException("User is not a participant in this chat");
+                // Validate user is part of the chat
+                var isUserInChat = await _chatRepository.IsUserInChatAsync(chatId, request.SenderId);
+                if (!isUserInChat)
+                {
+                    throw new UnauthorizedAccessException("User is not a participant in this chat");
+                }
+
+                // Create message
+                var message = await _chatRepository.CreateMessageAsync(chatId, request.SenderId, request.Content);
+
+                // Get chat info to identify other users
+                var chat = await _chatRepository.GetChatByIdAsync(chatId);
+
+                // Create DTO - WITHOUT setting IsFromMe (let the client handle this)
+                var messageDto = new MessageDTO
+                {
+                    MessageId = message.MessageId,
+                    ChatId = message.ChatId,
+                    SenderId = message.SenderId,
+                    Content = message.Content,
+                    SentAt = message.SentAt,
+                    IsFromMe = false  // Let the client set this based on their own identity
+                };
+
+                // Log the outgoing message
+                _logger.LogInformation($"Broadcasting message ID {message.MessageId} to chat group {chatId}");
+
+                // Broadcast to all clients in the chat group using SignalR
+                await _hubContext.Clients.Group(chatId.ToString())
+                    .SendAsync("ReceiveMessage", messageDto);
+
+                // The sender gets a different version with IsFromMe = true
+                messageDto.IsFromMe = true;
+                return messageDto;
             }
-
-            // Create message
-            var message = await _chatRepository.CreateMessageAsync(chatId, request.SenderId, request.Content);
-
-            // Create DTO
-            var messageDto = new MessageDTO
+            catch (Exception ex)
             {
-                MessageId = message.MessageId,
-                ChatId = message.ChatId,
-                SenderId = message.SenderId,
-                Content = message.Content,
-                SentAt = message.SentAt,
-                IsFromMe = true  // Always true for messages you just sent
-            };
-
-            // Broadcast to all clients in the chat group using SignalR
-            await _hubContext.Clients.Group(chatId.ToString())
-                .SendAsync("ReceiveMessage", messageDto);
-
-            return messageDto;
+                _logger.LogError(ex, $"Error sending message to chat {chatId}: {ex.Message}");
+                throw;
+            }
         }
 
         public async Task<List<MessageDTO>> GetChatMessagesAsync(int chatId, string userId)
@@ -159,7 +174,7 @@ namespace freelance_marketplace_backend.Services
                 SenderId = m.SenderId,
                 Content = m.Content,
                 SentAt = m.SentAt,
-                IsFromMe = m.SenderId == userId  
+                IsFromMe = m.SenderId == userId
             }).ToList();
 
             return messageDtos;
