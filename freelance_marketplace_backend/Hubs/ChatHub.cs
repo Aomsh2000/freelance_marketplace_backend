@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -9,12 +10,56 @@ namespace freelance_marketplace_backend.Hubs
     public class ChatHub : Hub
     {
         private readonly ILogger<ChatHub> _logger;
-        private static readonly Dictionary<string, HashSet<string>> _userConnections = new Dictionary<string, HashSet<string>>();
-        private static readonly Dictionary<string, HashSet<string>> _chatGroups = new Dictionary<string, HashSet<string>>();
+
+        // Thread-safe collections for tracking
+        private static readonly ConcurrentDictionary<string, HashSet<string>> _userConnections =
+            new ConcurrentDictionary<string, HashSet<string>>();
+
+        private static readonly ConcurrentDictionary<string, HashSet<string>> _chatGroups =
+            new ConcurrentDictionary<string, HashSet<string>>();
+
+        private static readonly ConcurrentDictionary<string, string> _connectionToUser =
+            new ConcurrentDictionary<string, string>();
 
         public ChatHub(ILogger<ChatHub> logger)
         {
             _logger = logger;
+        }
+
+        // Register user ID with connection
+        public async Task RegisterUser(string userId)
+        {
+            try
+            {
+                string connectionId = Context.ConnectionId;
+                _logger.LogInformation($"Registering user {userId} with connection {connectionId}");
+
+                // Add to connection-to-user mapping
+                _connectionToUser.AddOrUpdate(connectionId, userId, (key, oldValue) => userId);
+
+                // Add to user connections
+                _userConnections.AddOrUpdate(
+                    userId,
+                    // If key doesn't exist, create new HashSet with this connection
+                    new HashSet<string> { connectionId },
+                    // If key exists, add this connection to the existing HashSet
+                    (key, oldValue) =>
+                    {
+                        oldValue.Add(connectionId);
+                        return oldValue;
+                    }
+                );
+
+                _logger.LogInformation($"User {userId} registered with connection {connectionId}");
+                _logger.LogInformation($"User {userId} now has {_userConnections[userId].Count} active connections");
+
+                await Clients.Caller.SendAsync("UserRegistered", userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error registering user: {ex.Message}");
+                throw;
+            }
         }
 
         // Join a specific chat group (room)
@@ -29,14 +74,24 @@ namespace freelance_marketplace_backend.Hubs
                 await Groups.AddToGroupAsync(connectionId, chatId);
 
                 // Track chat membership
-                if (!_chatGroups.ContainsKey(chatId))
-                {
-                    _chatGroups[chatId] = new HashSet<string>();
-                }
-                _chatGroups[chatId].Add(connectionId);
+                _chatGroups.AddOrUpdate(
+                    chatId,
+                    // If key doesn't exist, create new HashSet with this connection
+                    new HashSet<string> { connectionId },
+                    // If key exists, add this connection to the existing HashSet
+                    (key, oldValue) =>
+                    {
+                        oldValue.Add(connectionId);
+                        return oldValue;
+                    }
+                );
 
                 _logger.LogInformation($"Connection {connectionId} successfully joined chat {chatId}");
-                _logger.LogInformation($"Chat {chatId} now has {_chatGroups[chatId].Count} connections");
+
+                if (_chatGroups.TryGetValue(chatId, out var connections))
+                {
+                    _logger.LogInformation($"Chat {chatId} now has {connections.Count} connections");
+                }
 
                 // Confirm join successful
                 await Clients.Caller.SendAsync("JoinChatSuccess", chatId);
@@ -62,12 +117,18 @@ namespace freelance_marketplace_backend.Hubs
                 await Groups.RemoveFromGroupAsync(connectionId, chatId);
 
                 // Update tracking
-                if (_chatGroups.ContainsKey(chatId))
+                if (_chatGroups.TryGetValue(chatId, out var connections))
                 {
-                    _chatGroups[chatId].Remove(connectionId);
-                    if (_chatGroups[chatId].Count == 0)
+                    connections.Remove(connectionId);
+
+                    if (connections.Count == 0)
                     {
-                        _chatGroups.Remove(chatId);
+                        _chatGroups.TryRemove(chatId, out _);
+                        _logger.LogInformation($"Removed empty chat group {chatId}");
+                    }
+                    else
+                    {
+                        _logger.LogInformation($"Chat {chatId} now has {connections.Count} connections");
                     }
                 }
 
@@ -86,27 +147,13 @@ namespace freelance_marketplace_backend.Hubs
             }
         }
 
-        // Register user ID with connection
-        public async Task RegisterUser(string userId)
-        {
-            string connectionId = Context.ConnectionId;
-            _logger.LogInformation($"Registering user {userId} with connection {connectionId}");
-
-            // Add to user connections
-            if (!_userConnections.ContainsKey(userId))
-            {
-                _userConnections[userId] = new HashSet<string>();
-            }
-            _userConnections[userId].Add(connectionId);
-
-            await Clients.Caller.SendAsync("UserRegistered", userId);
-        }
-
         // Connection handling
         public override async Task OnConnectedAsync()
         {
             string connectionId = Context.ConnectionId;
             _logger.LogInformation($"New connection established: {connectionId}");
+
+            await Clients.Caller.SendAsync("ConnectionEstablished", connectionId);
             await base.OnConnectedAsync();
         }
 
@@ -114,29 +161,40 @@ namespace freelance_marketplace_backend.Hubs
         {
             string connectionId = Context.ConnectionId;
 
+            // Get the user ID associated with this connection
+            string userId = null;
+            _connectionToUser.TryRemove(connectionId, out userId);
+
             // Remove from all chat groups
             foreach (var chatGroup in _chatGroups)
             {
                 if (chatGroup.Value.Contains(connectionId))
                 {
                     chatGroup.Value.Remove(connectionId);
+                    _logger.LogInformation($"Removed connection {connectionId} from chat {chatGroup.Key}");
+
                     if (chatGroup.Value.Count == 0)
                     {
-                        _chatGroups.Remove(chatGroup.Key);
+                        _chatGroups.TryRemove(chatGroup.Key, out _);
+                        _logger.LogInformation($"Removed empty chat group {chatGroup.Key}");
                     }
                 }
             }
 
             // Remove from user connections
-            foreach (var userConnection in _userConnections)
+            if (userId != null && _userConnections.TryGetValue(userId, out var userConns))
             {
-                if (userConnection.Value.Contains(connectionId))
+                userConns.Remove(connectionId);
+                _logger.LogInformation($"Removed connection {connectionId} from user {userId}");
+
+                if (userConns.Count == 0)
                 {
-                    userConnection.Value.Remove(connectionId);
-                    if (userConnection.Value.Count == 0)
-                    {
-                        _userConnections.Remove(userConnection.Key);
-                    }
+                    _userConnections.TryRemove(userId, out _);
+                    _logger.LogInformation($"Removed user {userId} with no active connections");
+                }
+                else
+                {
+                    _logger.LogInformation($"User {userId} still has {userConns.Count} active connections");
                 }
             }
 
@@ -164,6 +222,28 @@ namespace freelance_marketplace_backend.Hubs
             string connectionId = Context.ConnectionId;
             _logger.LogInformation($"Ping received from connection {connectionId}");
             return "Pong";
+        }
+
+        // Get all active connections for a user
+        public IEnumerable<string> GetUserConnections(string userId)
+        {
+            if (_userConnections.TryGetValue(userId, out var connections))
+            {
+                return connections;
+            }
+
+            return new List<string>();
+        }
+
+        // Get all connections in a chat room
+        public IEnumerable<string> GetChatRoomConnections(string chatId)
+        {
+            if (_chatGroups.TryGetValue(chatId, out var connections))
+            {
+                return connections;
+            }
+
+            return new List<string>();
         }
     }
 }
