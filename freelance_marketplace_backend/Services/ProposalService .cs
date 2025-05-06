@@ -79,6 +79,7 @@ namespace freelance_marketplace_backend.Services
             {
                 var proposals = await _context
                     .Proposals.Include(p => p.Freelancer)
+                    .Include(p => p.Project) 
                     .Where(p =>
                         p.FreelancerId == freelancerId
                         && (p.IsDeleted == null || p.IsDeleted == false)
@@ -90,6 +91,7 @@ namespace freelance_marketplace_backend.Services
                 {
                     ProposalId = p.ProposalId,
                     ProjectId = p.ProjectId,
+                    ProjectTitle = p.Project?.Title ?? "Unknown",
                     FreelancerId = p.FreelancerId,
                     FreelancerName = p.Freelancer.Name,
                     ProposedAmount = p.ProposedAmount,
