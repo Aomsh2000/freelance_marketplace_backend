@@ -5,6 +5,7 @@ using System.Text.Json;
 using freelance_marketplace_backend.Data;
 using freelance_marketplace_backend.Models.Dtos;
 using AdvancedAjax.Models.Dtos;
+using freelance_marketplace_backend.Models.Entities;
 
 namespace freelance_marketplace_backend.Controllers
 {
@@ -36,7 +37,7 @@ namespace freelance_marketplace_backend.Controllers
             var user = await _context.Users
                 .Where(u => u.Usersid == userId && (u.IsDeleted == null || u.IsDeleted == false))
                 .Include(u => u.UsersSkills).ThenInclude(us => us.Skill)
-                .Include(u => u.Projects)
+                .Include(u => u.ProjectFreelancers)
                 .ThenInclude(p => p.ProjectSkills)
                 .ThenInclude(ps => ps.Skill)
                 .FirstOrDefaultAsync();
@@ -46,12 +47,19 @@ namespace freelance_marketplace_backend.Controllers
                 return NotFound();
             }
 
+            var projects = await _context.Projects
+            .Where(p => p.FreelancerId == userId && p.Status == "Completed" )
+            .Include(p => p.ProjectSkills)
+            .ThenInclude(ps => ps.Skill)
+            .ToListAsync();
+
+
             var userProfile = new UserProfileDto
             {
                 UserId = user.Usersid,
                 Name = user.Name,
                 Email = user.Email,
-                Phone = user.phone,
+                Phone = user.Phone,
                 ImageUrl = user.ImageUrl,
                 AboutMe = user.AboutMe,
                 Rating = user.Rating,
@@ -62,27 +70,24 @@ namespace freelance_marketplace_backend.Controllers
                     Skill = us.Skill.Skill1,
                     Category = us.Skill.Category
                 }).ToList(),
-                Projects = user.Projects
-                    .Where(p => p.Status == "Completed" && p.FreelancerId == userId)
-                    .Select(p => new ProfileProjectDto
+                Projects = projects.Select(p => new ProfileProjectDto
+                {
+                    ProjectId = p.ProjectId,
+                    Title = p.Title,
+                    ProjectOverview = p.Overview,
+                    RequiredTasks = p.RequiredTasks,
+                    AdditionalNotes = p.AdditionalNotes,
+                    Budget = p.Budget,
+                    Deadline = p.Deadline,
+                    Status = p.Status,
+                    CreatedAt = p.CreatedAt,
+                    Skills = p.ProjectSkills.Select(ps => new SkillDto
                     {
-                        ProjectId = p.ProjectId,
-                        Title = p.Title,
-                        ProjectOverview = p.Overview,
-                        RequiredTasks = p.RequiredTasks,
-                        AdditionalNotes = p.AdditionalNotes,
-                        Budget = p.Budget,
-                        Deadline = p.Deadline,
-                        Status = p.Status,
-                        CreatedAt = p.CreatedAt,
-                        Skills = p.ProjectSkills.Select(ps => new SkillDto
-                        {
-                            SkillId = ps.Skill.SkillId,
-                            Skill = ps.Skill.Skill1,
-                            Category = ps.Skill.Category
-                        }).ToList()
-                       
+                        SkillId = ps.Skill.SkillId,
+                        Skill = ps.Skill.Skill1,
+                        Category = ps.Skill.Category
                     }).ToList()
+                }).ToList()
             };
 
             // Save to Redis cache

@@ -1,24 +1,175 @@
-﻿using freelance_marketplace_backend.Data;
+using System.Threading;
+using System.Threading.Tasks;
+using freelance_marketplace_backend.Data.Repositories;
+using freelance_marketplace_backend.Interfaces;
+using freelance_marketplace_backend.Models.Dtos;
+using freelance_marketplace_backend.Models.Entities;
+using freelance_marketplace_backend.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace freelance_marketplace_backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class ProjectsController : ControllerBase
     {
-        // each controller has its own service implementing an interface and a repository,
-        // if one of them is not there please create it and don`t use the controller for everything to ensure that all controllers are having the same berhaviour
-        // and to implement coding best practices   
-        // no database access from controllers
-        // you should use this controller to access <Name>Service and use <Name>Repository from there (<Name>Service)
-        FreelancingPlatformContext context = new FreelancingPlatformContext();
+        private readonly IProjectService _projectService;
+        private readonly IDistributedCache _cache;
 
-        [HttpGet]
-        public IActionResult getSkills() 
-        { 
-            return Ok(context.Skills.ToList());
+        private readonly ProjectRepository _projectRepository;
+
+        public ProjectsController(
+            ProjectRepository projectRepository,
+            IProjectService projectService,
+            IDistributedCache cache
+        )
+        {
+            _projectRepository = projectRepository;
+            _projectService = projectService;
+            _cache = cache;
+        }
+
+        // GET: api/projects/mine
+        [HttpGet("mine")]
+        [Authorize]
+        public async Task<IActionResult> GetMyPostedProjects()
+        {
+            var uid = User.FindFirst("user_id")?.Value;
+            if (uid == null)
+                return Unauthorized("User ID not found in token.");
+
+            var myProjects = await _projectRepository.GetProjectsByUserAsync(uid);
+            return Ok(myProjects);
+        }
+
+        // POST: api/projects/create
+        [HttpPost("create")]
+        [Authorize]
+        public async Task<IActionResult> PostNewProjectAsync(
+            [FromBody] CreateProjectDto project,
+            CancellationToken cancellationToken = default
+        )
+        {
+            var uid = User.FindFirst("user_id")?.Value;
+            if (uid == null)
+                return Unauthorized("User ID not found in token.");
+
+            if (string.IsNullOrWhiteSpace(project.Title))
+                return BadRequest("Title is required.");
+            if (string.IsNullOrWhiteSpace(project.ProjectOverview))
+                return BadRequest("Project overview is required.");
+            if (string.IsNullOrWhiteSpace(project.RequiredTasks))
+                return BadRequest("Required tasks are required.");
+            if (project.Budget <= 0)
+                return BadRequest("Budget must be greater than zero.");
+            if (project.Deadline == default)
+                return BadRequest("A valid deadline is required.");
+
+            var newProject = new Project
+            {
+                Title = project.Title,
+                Overview = project.ProjectOverview,
+                RequiredTasks = project.RequiredTasks,
+                AdditionalNotes = project.AdditionalNotes ?? "",
+                Budget = project.Budget,
+                Deadline = project.Deadline,
+                PostedBy = uid,
+                Status = "Open",
+            };
+
+            await _projectRepository.AddProjectAsync(newProject, project.Skills, cancellationToken);
+            return Ok(new { newProject.ProjectId });
+        }
+
+        // DELETE: api/projects/{id}
+        [HttpDelete("{id}")]
+        [Authorize]
+        public async Task<IActionResult> DeleteProject(
+            int id,
+            CancellationToken cancellationToken = default
+        )
+        {
+            var uid = User.FindFirst("user_id")?.Value;
+            if (uid == null)
+                return Unauthorized("User ID not found in token.");
+
+            var result = await _projectRepository.MarkProjectAsDeletedAsync(
+                id,
+                uid,
+                cancellationToken
+            );
+            if (result == "NotFound")
+                return NotFound($"Project with ID {id} not found.");
+            if (result == "Unauthorized")
+                return Unauthorized("You only can delete your projects");
+
+            return Ok($"Project with ID {id} has been marked as deleted.");
+        }
+
+        // PUT: api/projects/{projectsid}/assign
+
+        [HttpPut("{projectId}/assign")]
+        [Authorize]
+        public async Task<IActionResult> AssignProjectToFreelancer(
+            int projectId,
+            [FromBody] AssignProjectDto model
+        )
+        {
+            try
+            {
+                //extract userid from token
+                var uid = User.FindFirst("user_id")?.Value;
+
+                if (uid == null)
+                {
+                    return Unauthorized("Unauthorized: user_id is missing in the token.");
+                }
+
+                // Request the assignment from the service
+                var result = await _projectService.AssignProjectToFreelancer(projectId, model, uid);
+
+                if (result == null)
+                {
+                    return NotFound("Project or proposal not found.");
+                }
+                // Invalidate the cache for the project after assignment
+                await _cache.RemoveAsync($"project:{projectId}");
+                // Return the updated project details
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid(ex.Message);
+            }
+            // Handle any InvalidOperationException (e.g., trying to assign a freelancer to a project already assigned)
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
+            // Handle any other unexpected errors
+            catch (Exception ex)
+            {
+                return StatusCode(
+                    500,
+                    new
+                    {
+                        message = "An error occurred while processing your request.",
+                        error = ex.Message,
+                    }
+                );
+            }
+        }
+
+        [HttpGet("Get-AllMyWorkingProjects/{freelancerId}")]
+        public async Task<IActionResult> GetAllMyWorkingProjects(string freelancerId)
+        {
+            var result = await _projectService.GetAllMyProjectsAsync(freelancerId);
+            return Ok(result);
         }
     }
 }

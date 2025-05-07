@@ -101,7 +101,7 @@ namespace freelance_marketplace_backend.Data.Repositories
                     Usersid = user.UserId,
                     Name = user.Name,
                     AboutMe = user.AboutMe,
-                    phone = user.Phone,
+                    Phone = user.Phone,
                     Email = user.Email
                 };
 

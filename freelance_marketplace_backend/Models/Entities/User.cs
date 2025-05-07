@@ -8,7 +8,6 @@ public partial class User
     public string Usersid { get; set; } = null!;
 
     public string Name { get; set; } = null!;
-    public string phone { get; set; } = null!;
 
     public string Email { get; set; } = null!;
 
@@ -24,6 +23,8 @@ public partial class User
 
     public bool? IsDeleted { get; set; }
 
+    public string? Phone { get; set; }
+
     public virtual ICollection<Chat> ChatClients { get; set; } = new List<Chat>();
 
     public virtual ICollection<Chat> ChatFreelancers { get; set; } = new List<Chat>();
@@ -34,7 +35,10 @@ public partial class User
 
     public virtual ICollection<Payment> PaymentFreelancers { get; set; } = new List<Payment>();
 
-    public virtual ICollection<Project> Projects { get; set; } = new List<Project>();
+    public virtual ICollection<Project> ProjectFreelancers { get; set; } = new List<Project>();
+
+    public virtual ICollection<Project> ProjectPostedByNavigations { get; set; } =
+        new List<Project>();
 
     public virtual ICollection<Proposal> Proposals { get; set; } = new List<Proposal>();
 

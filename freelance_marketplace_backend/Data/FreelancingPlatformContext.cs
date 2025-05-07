@@ -7,16 +7,13 @@ namespace freelance_marketplace_backend.Data;
 
 public partial class FreelancingPlatformContext : DbContext
 {
-    private readonly IConfiguration _configuration;
-
     public FreelancingPlatformContext()
     {
     }
 
-    public FreelancingPlatformContext(DbContextOptions<FreelancingPlatformContext> options, IConfiguration configuration)
+    public FreelancingPlatformContext(DbContextOptions<FreelancingPlatformContext> options)
         : base(options)
     {
-        _configuration = configuration;
     }
 
     public virtual DbSet<Chat> Chats { get; set; }
@@ -40,14 +37,8 @@ public partial class FreelancingPlatformContext : DbContext
     public virtual DbSet<UsersSkill> UsersSkills { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        if (!optionsBuilder.IsConfigured)
-        {
-            var connectionString = _configuration.GetConnectionString("DefaultConnection");
-            optionsBuilder.UseSqlServer(connectionString);
-        }
-    }
-
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseSqlServer("Server=freelancemarketplace.database.windows.net;Database=Freelancer;User Id=manager;Password=y93@34t@BYyRj5g;Encrypt=True;TrustServerCertificate=True;");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -199,6 +190,10 @@ public partial class FreelancingPlatformContext : DbContext
             entity.Property(e => e.Overview)
                 .IsUnicode(false)
                 .HasColumnName("overview");
+            entity.Property(e => e.PostedBy)
+                .HasMaxLength(128)
+                .IsUnicode(false)
+                .HasColumnName("postedBy");
             entity.Property(e => e.RequiredTasks)
                 .IsUnicode(false)
                 .HasColumnName("requiredTasks");
@@ -211,9 +206,13 @@ public partial class FreelancingPlatformContext : DbContext
                 .IsUnicode(false)
                 .HasColumnName("title");
 
-            entity.HasOne(d => d.Freelancer).WithMany(p => p.Projects)
+            entity.HasOne(d => d.Freelancer).WithMany(p => p.ProjectFreelancers)
                 .HasForeignKey(d => d.FreelancerId)
                 .HasConstraintName("FK__PROJECT__freelan__2BFE89A6");
+
+            entity.HasOne(d => d.PostedByNavigation).WithMany(p => p.ProjectPostedByNavigations)
+                .HasForeignKey(d => d.PostedBy)
+                .HasConstraintName("FK__PROJECT__postedB__607251E5");
         });
 
         modelBuilder.Entity<ProjectSkill>(entity =>
@@ -393,6 +392,10 @@ public partial class FreelancingPlatformContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false)
                 .HasColumnName("name");
+            entity.Property(e => e.Phone)
+                .HasMaxLength(13)
+                .IsUnicode(false)
+                .HasColumnName("phone");
             entity.Property(e => e.Rating)
                 .HasColumnType("decimal(2, 1)")
                 .HasColumnName("rating");
