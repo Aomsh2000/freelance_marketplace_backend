@@ -1,5 +1,4 @@
-﻿// Data/Repositories/ChatRepository.cs
-using freelance_marketplace_backend.Models.Entities;
+﻿using freelance_marketplace_backend.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -26,7 +25,7 @@ namespace freelance_marketplace_backend.Data.Repositories
                     && c.IsDeleted != true);
         }
 
-        
+
         public async Task<Chat> GetChatByClientAndFreelancerAsync(string userId1, string userId2)
         {
             return await _context.Chats

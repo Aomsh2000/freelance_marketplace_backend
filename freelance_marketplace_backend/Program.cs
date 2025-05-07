@@ -59,8 +59,8 @@ builder.Services.AddStackExchangeRedisCache(options =>
 // Enhanced SignalR configuration
 builder.Services.AddSignalR(options =>
 {
-    options.EnableDetailedErrors = true; // Enable detailed errors for debugging
-    options.MaximumReceiveMessageSize = 102400; // 100 KB
+    options.EnableDetailedErrors = true; 
+    options.MaximumReceiveMessageSize = 102400; 
     options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
     options.KeepAliveInterval = TimeSpan.FromSeconds(15);
 });

@@ -1,5 +1,4 @@
-﻿// Controllers/ChatsController.cs
-using freelance_marketplace_backend.Interfaces;
+﻿using freelance_marketplace_backend.Interfaces;
 using freelance_marketplace_backend.Models.Dtos;
 using Microsoft.AspNetCore.Mvc;
 using System;
