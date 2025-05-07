@@ -34,15 +34,6 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Database configuration
-    options.AddPolicy(
-        "AllowAngularApp",
-        policy =>
-        {
-            policy.WithOrigins("http://localhost:4200").AllowAnyMethod().AllowAnyHeader();
-        }
-    );
-});
 
 //Stripe configuration
 //Retrieve the Stripe API keys from appsettings.json
