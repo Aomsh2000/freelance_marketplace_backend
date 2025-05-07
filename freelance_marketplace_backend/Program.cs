@@ -1,39 +1,30 @@
 using freelance_marketplace_backend.Data;
 using freelance_marketplace_backend.Data.Repositories;
-using freelance_marketplace_backend.Interfaces;
-using freelance_marketplace_backend.Services;
 using freelance_marketplace_backend.Hubs;
-using freelance_marketplace_backend.Services.freelance_marketplace_backend.Services;
-
-using Stripe;
+using freelance_marketplace_backend.Interfaces;
 using freelance_marketplace_backend.Models;
-
+using freelance_marketplace_backend.Services;
+using freelance_marketplace_backend.Services.freelance_marketplace_backend.Services;
 using Microsoft.EntityFrameworkCore;
+using Stripe;
 
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure detailed logging
-builder.Services.AddLogging(options =>
-{
-    options.AddConsole();
-    options.AddDebug();
-    options.SetMinimumLevel(LogLevel.Debug); // Enable detailed logging
-});
-
-// Add CORS policy with better WebSocket support
+// Add CORS policy with credentials support
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAngularApp", policy =>
-    {
-        policy.WithOrigins("http://localhost:4200")
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials() // Required for SignalR
-              .SetIsOriginAllowed(origin => true); // More permissive during development
-    });
+    options.AddPolicy(
+        "AllowAngularApp",
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:4200")
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials(); // Added this line to allow credentials
+        }
+    );
 });
-
 
 //Stripe configuration
 //Retrieve the Stripe API keys from appsettings.json
@@ -44,6 +35,7 @@ builder.Services.Configure<StripeSettings>(
 
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
 builder.Services.AddDbContext<FreelancingPlatformContext>(options =>
     options.UseSqlServer(
         connectionString,
@@ -61,7 +53,7 @@ builder.Services.AddDbContext<FreelancingPlatformContext>(options =>
 
 builder.Configuration.AddUserSecrets<Program>();
 
-// Redis configuration
+// Get the Redis connection string from configuration
 var redisConnectionString = builder.Configuration.GetConnectionString("RedisConnection");
 if (string.IsNullOrEmpty(redisConnectionString))
 {
@@ -70,17 +62,16 @@ if (string.IsNullOrEmpty(redisConnectionString))
     );
 }
 
+// Configure Redis caching
 builder.Services.AddStackExchangeRedisCache(options =>
 {
     options.Configuration = redisConnectionString;
     options.InstanceName = "FreelancerMarketplace_";
 });
-
-// Enhanced SignalR configuration
 builder.Services.AddSignalR(options =>
 {
-    options.EnableDetailedErrors = true; 
-    options.MaximumReceiveMessageSize = 102400; 
+    options.EnableDetailedErrors = true;
+    options.MaximumReceiveMessageSize = 102400;
     options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
     options.KeepAliveInterval = TimeSpan.FromSeconds(15);
 });
@@ -89,17 +80,12 @@ builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ClientProjectRepository>();
 builder.Services.AddScoped<IClientProjectService, ClientProjectService>();
-
+builder.Services.AddScoped<ChatRepository>();
 builder.Services.AddScoped<IProposalService, ProposalService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
-
+builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<ProjectRepository>();
 
-// Service registrations
-builder.Services.AddScoped<UserRepository>();
-builder.Services.AddScoped<ChatRepository>();
-builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddControllers();
 builder.Services.AddSwaggerGen();
 
@@ -147,9 +133,5 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-
-
 app.MapHub<ChatHub>("/chatHub");
-
 app.Run();
-

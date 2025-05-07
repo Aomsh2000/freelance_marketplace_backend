@@ -86,5 +86,6 @@ namespace freelance_marketplace_backend.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
     }
 }
