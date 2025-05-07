@@ -88,7 +88,7 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 
-// Map the hub AFTER all other middleware
+
 app.MapHub<ChatHub>("/chatHub");
 
 app.Run();
