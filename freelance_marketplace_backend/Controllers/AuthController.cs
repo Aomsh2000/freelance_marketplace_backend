@@ -104,29 +104,6 @@ namespace freelance_marketplace_backend.Controllers
             return Ok(userProfile);
         }
 
-        [HttpPut("users/{userId}/balance/change")]
-        public async Task<IActionResult> ChangeBalance(string userId, [FromBody] BalanceChangeDto request)
-        {
-            if (request == null)
-                return BadRequest("Request body is missing.");
-
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Usersid == userId);
-
-            if (user == null)
-                return NotFound("User not found.");
-
-            user.Balance += request.Amount;
-
-            _context.Users.Update(user);
-            await _context.SaveChangesAsync();
-
-            // Invalidate cache after balance change
-            var cacheKey = $"UserProfile_{userId}";
-            await _cache.RemoveAsync(cacheKey);
-
-            return Ok(new { message = "Balance updated successfully.", newBalance = user.Balance });
-        }
-
         [Authorize]
         [HttpPut("balance/change")]
         public async Task<IActionResult> ChangeBalance([FromBody] BalanceChangeDto request)
