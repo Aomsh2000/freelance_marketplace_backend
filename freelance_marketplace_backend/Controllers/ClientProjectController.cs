@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace freelance_marketplace_backend.Controllers
 {
@@ -11,10 +12,11 @@ namespace freelance_marketplace_backend.Controllers
     public class ClientProjectController : ControllerBase
     {
         private readonly IClientProjectService _clientProjectService;
-
-        public ClientProjectController(IClientProjectService clientProjectService)
+        private readonly IDistributedCache _cache;
+        public ClientProjectController(IClientProjectService clientProjectService, IDistributedCache cache)
         {
             _clientProjectService = clientProjectService;
+            _cache = cache;
         }
 
         [HttpGet("approved/{clientId}")]
@@ -56,6 +58,9 @@ namespace freelance_marketplace_backend.Controllers
             var result = await _clientProjectService.MarkProjectAsCompleted(projectId);
             if (result)
             {
+                // clear cash
+                var all_avalible_projects_cacheKey = "AvailableProjects";
+                await _cache.RemoveAsync(all_avalible_projects_cacheKey);
                 return Ok(new { message = "Project marked as completed successfully." });
             }
             return BadRequest(new { message = "Failed to mark the project as completed." });
