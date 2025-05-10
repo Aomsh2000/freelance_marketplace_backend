@@ -2,40 +2,46 @@ using System.Threading;
 using System.Threading.Tasks;
 using freelance_marketplace_backend.Data.Repositories;
 using freelance_marketplace_backend.Interfaces;
+using freelance_marketplace_backend.Models;
 using freelance_marketplace_backend.Models.Dtos;
 using freelance_marketplace_backend.Models.Entities;
 using freelance_marketplace_backend.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
+
+
 
 namespace freelance_marketplace_backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+ 
     public class ProjectsController : ControllerBase
     {
         private readonly IProjectService _projectService;
         private readonly IDistributedCache _cache;
 
+        //private readonly TwilioService _twilioService;
         private readonly ProjectRepository _projectRepository;
 
         public ProjectsController(
             ProjectRepository projectRepository,
             IProjectService projectService,
             IDistributedCache cache
+            //TwilioService twilioService
+
         )
-        {
+		{
             _projectRepository = projectRepository;
             _projectService = projectService;
             _cache = cache;
+            //_twilioService = twilioService;
+
         }
 
-        // GET: api/projects/mine
-        [HttpGet("mine")]
+		// GET: api/projects/mine
+		[HttpGet("mine")]
         [Authorize]
         public async Task<IActionResult> GetMyPostedProjects()
         {
@@ -115,10 +121,7 @@ namespace freelance_marketplace_backend.Controllers
 
         [HttpPut("{projectId}/assign")]
         [Authorize]
-        public async Task<IActionResult> AssignProjectToFreelancer(
-            int projectId,
-            [FromBody] AssignProjectDto model
-        )
+        public async Task<IActionResult> AssignProjectToFreelancer( int projectId, [FromBody] AssignProjectDto model)
         {
             try
             {
@@ -133,16 +136,26 @@ namespace freelance_marketplace_backend.Controllers
                 // Request the assignment from the service
                 var result = await _projectService.AssignProjectToFreelancer(projectId, model, uid);
 
+
                 if (result == null)
                 {
                     return NotFound("Project or proposal not found.");
                 }
-                // Invalidate the cache for the project after assignment
-                await _cache.RemoveAsync($"project:{projectId}");
-                // Return the updated project details
-                return Ok(result);
-            }
-            catch (UnauthorizedAccessException ex)
+
+				//var message = $"Congratulations! Your Proposal has been accepted for the project Number: {projectId}";
+
+				//await _twilioService.SendSmsAsync(model.FreelancerPhoneNumber, message);
+
+				// Invalidate the cache for the project after assignment
+				await _cache.RemoveAsync($"project:{projectId}");
+			
+				// Return the updated project details
+				return Ok(result);
+
+		
+
+			}
+			catch (UnauthorizedAccessException ex)
             {
                 return Forbid(ex.Message);
             }
@@ -154,9 +167,7 @@ namespace freelance_marketplace_backend.Controllers
             // Handle any other unexpected errors
             catch (Exception ex)
             {
-                return StatusCode(
-                    500,
-                    new
+                return StatusCode( 500,new
                     {
                         message = "An error occurred while processing your request.",
                         error = ex.Message,

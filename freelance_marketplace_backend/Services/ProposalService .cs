@@ -1,16 +1,12 @@
-﻿using System;
-using freelance_marketplace_backend.Data;
+﻿using freelance_marketplace_backend.Data;
 using freelance_marketplace_backend.Interfaces;
-using freelance_marketplace_backend.Models;
 using freelance_marketplace_backend.Models.Entities;
 using global::freelance_marketplace_backend.Models.Dtos;
-using global::freelance_marketplace_backend.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace freelance_marketplace_backend.Services
 {
-    namespace freelance_marketplace_backend.Services
-    {
+   
         // Service to manage proposal-related operations
         public class ProposalService : IProposalService
         {
@@ -67,7 +63,8 @@ namespace freelance_marketplace_backend.Services
                     Deadline = proposal.Deadline,
                     CoverLetter = proposal.CoverLetter,
                     Status = proposal.Status,
-                    CreatedAt = proposal.CreatedAt ?? DateTime.MinValue,
+					freelancerPhoneNumber = proposal.Freelancer.Phone,
+					CreatedAt = proposal.CreatedAt ?? DateTime.MinValue,
                 };
 
                 return proposalDtoResult;
@@ -121,4 +118,4 @@ namespace freelance_marketplace_backend.Services
             }
         }
     }
-}
+
