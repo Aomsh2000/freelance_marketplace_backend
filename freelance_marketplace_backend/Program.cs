@@ -58,6 +58,8 @@ builder.Services.AddScoped<IClientProjectService, ClientProjectService>();
 
 builder.Services.AddScoped<IProposalService,ProposalService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
+builder.Services.AddScoped<IReviewService, ReviewService>();
+
 
 
 builder.Services.AddScoped<ProjectRepository>();
