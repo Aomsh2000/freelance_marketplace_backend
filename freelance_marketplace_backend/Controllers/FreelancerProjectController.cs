@@ -34,7 +34,7 @@ namespace freelance_marketplace_backend.Controllers
             }
 
             var projects = await _context.Projects
-                .Where(p => p.Status == "Open" && p.FreelancerId == null)
+                .Where(p => p.Status == "Open" && p.FreelancerId == null && p.IsDeleted!=true)
                 .Include(p => p.ProjectSkills)
                     .ThenInclude(ps => ps.Skill)
                 .ToListAsync();

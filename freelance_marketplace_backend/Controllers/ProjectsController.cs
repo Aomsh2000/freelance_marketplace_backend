@@ -83,6 +83,11 @@ namespace freelance_marketplace_backend.Controllers
             };
 
             await _projectRepository.AddProjectAsync(newProject, project.Skills, cancellationToken);
+
+            // clear cash from avalible projects
+            var all_avalible_projects_cacheKey = "AvailableProjects";
+            await _cache.RemoveAsync(all_avalible_projects_cacheKey);
+
             return Ok(new { newProject.ProjectId });
         }
 
@@ -108,6 +113,9 @@ namespace freelance_marketplace_backend.Controllers
             if (result == "Unauthorized")
                 return Unauthorized("You only can delete your projects");
 
+            // clear cash from avalible projects
+            var all_avalible_projects_cacheKey = "AvailableProjects";
+            await _cache.RemoveAsync(all_avalible_projects_cacheKey);
             return Ok($"Project with ID {id} has been marked as deleted.");
         }
 
@@ -139,6 +147,11 @@ namespace freelance_marketplace_backend.Controllers
                 }
                 // Invalidate the cache for the project after assignment
                 await _cache.RemoveAsync($"project:{projectId}");
+
+                // clear cash from avalible projects
+                var all_avalible_projects_cacheKey = "AvailableProjects";
+                await _cache.RemoveAsync(all_avalible_projects_cacheKey);
+
                 // Return the updated project details
                 return Ok(result);
             }

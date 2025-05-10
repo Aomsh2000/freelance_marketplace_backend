@@ -6,6 +6,8 @@ using freelance_marketplace_backend.Data;
 using freelance_marketplace_backend.Models.Dtos;
 using AdvancedAjax.Models.Dtos;
 using freelance_marketplace_backend.Models.Entities;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace freelance_marketplace_backend.Controllers
 {
@@ -102,24 +104,28 @@ namespace freelance_marketplace_backend.Controllers
             return Ok(userProfile);
         }
 
-        [HttpPut("users/{userId}/balance/change")]
-        public async Task<IActionResult> ChangeBalance(string userId, [FromBody] BalanceChangeDto request)
+        [Authorize]
+        [HttpPut("balance/change")]
+        public async Task<IActionResult> ChangeBalance([FromBody] BalanceChangeDto request)
         {
             if (request == null)
                 return BadRequest("Request body is missing.");
 
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Usersid == userId);
+            //Get userID from token and check if it exists
+            var uid = User.FindFirst("user_id")?.Value;
+            if (uid == null)
+                return Unauthorized();
 
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Usersid == uid);
             if (user == null)
                 return NotFound("User not found.");
 
+            // increment balance
             user.Balance += request.Amount;
-
-            _context.Users.Update(user);
             await _context.SaveChangesAsync();
 
-            // Invalidate cache after balance change
-            var cacheKey = $"UserProfile_{userId}";
+            // clear cash
+            var cacheKey = $"UserProfile_{uid}";
             await _cache.RemoveAsync(cacheKey);
 
             return Ok(new { message = "Balance updated successfully.", newBalance = user.Balance });
