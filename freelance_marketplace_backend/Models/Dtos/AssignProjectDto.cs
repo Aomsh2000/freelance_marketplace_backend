@@ -5,8 +5,11 @@ namespace freelance_marketplace_backend.Models.Dtos
 	{
 		public string FreelancerId { get; set; }  //Freelancer ID
 		public int ProposalId { get; set; }  //Proposal ID being accepted
-	
-		 [JsonIgnore]
+
+		[JsonIgnore]
+		public string FreelancerPhoneNumber { get; set; }
+
+		[JsonIgnore]
 		public decimal ClientBalance { get; set; }  //client balance after modification
 	}
 }
