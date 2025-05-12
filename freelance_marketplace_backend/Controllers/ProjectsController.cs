@@ -20,18 +20,20 @@ namespace freelance_marketplace_backend.Controllers
     {
         private readonly IProjectService _projectService;
         private readonly IDistributedCache _cache;
-
+        private readonly TwilioService _twilioService;
         private readonly ProjectRepository _projectRepository;
 
         public ProjectsController(
             ProjectRepository projectRepository,
             IProjectService projectService,
-            IDistributedCache cache
+            IDistributedCache cache,
+            TwilioService twilioService
         )
         {
             _projectRepository = projectRepository;
             _projectService = projectService;
             _cache = cache;
+            _twilioService = twilioService;
         }
 
         // GET: api/projects/mine
@@ -151,7 +153,9 @@ namespace freelance_marketplace_backend.Controllers
                 // clear cash from avalible projects
                 var all_avalible_projects_cacheKey = "AvailableProjects";
                 await _cache.RemoveAsync(all_avalible_projects_cacheKey);
+                var message = $"Congratulations! Your Proposal has been accepted for the project Number: {projectId}";
 
+                await _twilioService.SendSmsAsync(model.FreelancerPhoneNumber, message);
                 // Return the updated project details
                 return Ok(result);
             }
