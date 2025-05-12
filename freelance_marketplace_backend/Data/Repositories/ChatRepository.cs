@@ -89,6 +89,7 @@ namespace freelance_marketplace_backend.Data.Repositories
             return await _context.Messages
                 .Where(m => m.ChatId == chatId && m.IsDeleted != true)
                 .OrderBy(m => m.SentAt)
+                .ThenBy(m => m.MessageId) 
                 .ToListAsync();
         }
 
