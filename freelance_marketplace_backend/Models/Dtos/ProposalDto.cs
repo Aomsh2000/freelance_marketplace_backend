@@ -10,7 +10,7 @@
         public string FreelancerName { get; set; } = null!; // Name of the freelancer who submitted the proposal
         public string ProjectTitle { get; set; } // Title of the project associated with this proposal
         public decimal ProposedAmount { get; set; } // Amount proposed by the freelancer
-
+        public string? freelancerPhoneNumber { get; set; }
         public DateOnly Deadline { get; set; } // Deadline suggested by the freelancer for completing the project
 
         public string CoverLetter { get; set; } = null!; // Cover letter or description from the freelancer

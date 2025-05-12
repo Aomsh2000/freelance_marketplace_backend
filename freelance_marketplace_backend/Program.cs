@@ -67,6 +67,9 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.InstanceName = "FreelancerMarketplace_";
 });
 
+//Twilio - Register the Service
+builder.Services.Configure<TwilioSettings>(builder.Configuration.GetSection("Twilio"));
+builder.Services.AddTransient<TwilioService>();
 // Add services to the container.
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();

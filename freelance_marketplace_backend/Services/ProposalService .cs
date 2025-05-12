@@ -64,6 +64,7 @@ namespace freelance_marketplace_backend.Services
                     FreelancerId = proposal.FreelancerId,
                     FreelancerName = freelancerName,
                     ProposedAmount = proposal.ProposedAmount,
+                    freelancerPhoneNumber = proposal.Freelancer.Phone,
                     Deadline = proposal.Deadline,
                     CoverLetter = proposal.CoverLetter,
                     Status = proposal.Status,
