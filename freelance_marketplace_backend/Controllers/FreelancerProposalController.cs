@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using Bugsnag;
 using freelance_marketplace_backend.Data;
 using freelance_marketplace_backend.Interfaces;
 using freelance_marketplace_backend.Models.Dtos;
@@ -6,7 +7,9 @@ using freelance_marketplace_backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
+using Bugsnag;
 
 namespace freelance_marketplace_backend.Controllers
 {
@@ -17,16 +20,20 @@ namespace freelance_marketplace_backend.Controllers
         private readonly IProjectService _projectService;
         private readonly IProposalService _proposalService;
         private readonly IDistributedCache _cache;
+        private readonly IClient _bugsnag;
 
         public FreelancerProposalController(
             IProjectService projectService,
             IProposalService proposalService,
-            IDistributedCache cache
+            IDistributedCache cache,
+            IClient bugsnag
         )
         {
             _projectService = projectService;
             _proposalService = proposalService;
             _cache = cache;
+            _bugsnag = bugsnag;
+
         }
 
         // GET: api/FreelancerProposal/{projectId}
@@ -98,12 +105,14 @@ namespace freelance_marketplace_backend.Controllers
                     proposal
                 );
             }
-            catch (KeyNotFoundException)
+            catch (KeyNotFoundException ex)
             {
+                _bugsnag.Notify(ex);
                 return NotFound("Project not found.");
             }
             catch (Exception ex)
             {
+                _bugsnag.Notify(ex);
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
