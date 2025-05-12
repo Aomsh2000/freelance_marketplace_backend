@@ -1,5 +1,4 @@
 ﻿using System.Text.Json;
-
 using freelance_marketplace_backend.Data;
 using freelance_marketplace_backend.Interfaces;
 using freelance_marketplace_backend.Models.Dtos;
@@ -7,6 +6,7 @@ using freelance_marketplace_backend.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.AspNetCore.Authorization;
 
 namespace freelance_marketplace_backend.Controllers
 {
@@ -110,6 +110,7 @@ namespace freelance_marketplace_backend.Controllers
 
         // GET: api/FreelancerProposal/myproposals/{freelancerId}
         [HttpGet("myproposals/{freelancerId}")]
+        [Authorize]
         public async Task<IActionResult> GetMyProposals(string freelancerId)
         {
             try
@@ -127,6 +128,7 @@ namespace freelance_marketplace_backend.Controllers
 
         // DELETE: api/FreelancerProposal/delete/{proposalId}/{freelancerId}
         [HttpDelete("delete/{proposalId}/{freelancerId}")]
+        [Authorize]
         public async Task<IActionResult> DeleteProposal(int proposalId, string freelancerId)
         {
             try
