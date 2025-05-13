@@ -133,7 +133,9 @@ namespace freelance_marketplace_backend.Controllers
         {
             try
             {
+
                 var result = await _proposalService.DeleteProposalAsync(proposalId, freelancerId);
+
 
                 if (!result)
                 {
@@ -144,8 +146,8 @@ namespace freelance_marketplace_backend.Controllers
                         }
                     );
                 }
-
-                return Ok(new { message = "Proposal deleted successfully." });
+				
+				return Ok(new { message = "Proposal deleted successfully." });
             }
             catch (InvalidOperationException ex)
             {
