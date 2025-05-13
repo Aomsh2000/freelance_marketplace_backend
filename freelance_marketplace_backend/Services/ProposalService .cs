@@ -6,6 +6,8 @@ using freelance_marketplace_backend.Models.Entities;
 using global::freelance_marketplace_backend.Models.Dtos;
 using global::freelance_marketplace_backend.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
+using Pipelines.Sockets.Unofficial.Arenas;
 
 namespace freelance_marketplace_backend.Services
 {
@@ -15,11 +17,13 @@ namespace freelance_marketplace_backend.Services
         public class ProposalService : IProposalService
         {
             private readonly FreelancingPlatformContext _context;
+			private readonly IDistributedCache _cache;
 
-            public ProposalService(FreelancingPlatformContext context)
+			public ProposalService(FreelancingPlatformContext context, IDistributedCache cache)
             {
                 _context = context;
-            }
+				_cache = cache;
+			}
 
             // Submits a proposal for a specific project and returns the created proposal with freelancer info.
             public async Task<ProposalDto> SubmitProposalAsync(
@@ -33,7 +37,8 @@ namespace freelance_marketplace_backend.Services
                     throw new KeyNotFoundException("Project not found.");
                 }
 
-                DateOnly deadlineDateOnly = DateOnly.FromDateTime(proposalDto.Deadline);
+			
+				DateOnly deadlineDateOnly = DateOnly.FromDateTime(proposalDto.Deadline);
 
                 // Create a new Proposal
                 var proposal = new Proposal
@@ -114,8 +119,10 @@ namespace freelance_marketplace_backend.Services
 
                 if (proposal == null)
                     return false;
+				//remove project from cache
+				await _cache.RemoveAsync($"project:{proposal.ProjectId}");
 
-                proposal.IsDeleted = true;
+				proposal.IsDeleted = true;
                 await _context.SaveChangesAsync();
 
                 return true;
