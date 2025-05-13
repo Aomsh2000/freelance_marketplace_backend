@@ -67,6 +67,7 @@ namespace freelance_marketplace_backend.Services
 					Deadline = pr.Deadline,
 					CoverLetter = pr.CoverLetter,
 					Status = pr.Status,
+					ProjectTitle = pr.Project.Title,
 					CreatedAt = pr.CreatedAt ?? DateTime.MinValue,
 				})
 				.ToListAsync();
