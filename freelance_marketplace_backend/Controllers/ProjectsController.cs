@@ -168,8 +168,8 @@ namespace freelance_marketplace_backend.Controllers
 
                
                 // 4- clear cash from approved projects
-                string cacheKey = $"approved_projects_{uid}";
-                 await _cache.RemoveAsync(cacheKey);
+                string approved_projects_cacheKey = $"approved_projects_{uid}";
+                 await _cache.RemoveAsync(approved_projects_cacheKey);
 
 		        		var message = $"Congratulations! Your Proposal has been accepted for the project Number: {projectId}";
 
