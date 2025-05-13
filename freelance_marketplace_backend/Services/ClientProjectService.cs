@@ -72,6 +72,8 @@ namespace freelance_marketplace_backend.Services
                 {
                     string cacheKey = $"approved_projects_{userId}";
                     await _cache.RemoveAsync(cacheKey); // Clear cache for this user
+
+                   
                 }
             }
             return success;

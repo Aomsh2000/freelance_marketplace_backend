@@ -58,9 +58,12 @@ namespace freelance_marketplace_backend.Controllers
             var result = await _clientProjectService.MarkProjectAsCompleted(projectId);
             if (result)
             {
-                // clear cash
+                // clear cash from AvailableProjects
                 var all_avalible_projects_cacheKey = "AvailableProjects";
                 await _cache.RemoveAsync(all_avalible_projects_cacheKey);
+
+                
+
                 return Ok(new { message = "Project marked as completed successfully." });
             }
             return BadRequest(new { message = "Failed to mark the project as completed." });
