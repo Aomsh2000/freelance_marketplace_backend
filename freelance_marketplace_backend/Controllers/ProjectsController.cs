@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
+using Pipelines.Sockets.Unofficial.Arenas;
 
 namespace freelance_marketplace_backend.Controllers
 {
@@ -118,7 +119,10 @@ namespace freelance_marketplace_backend.Controllers
             // clear cash from avalible projects
             var all_avalible_projects_cacheKey = "AvailableProjects";
             await _cache.RemoveAsync(all_avalible_projects_cacheKey);
-            return Ok($"Project with ID {id} has been marked as deleted.");
+            //remove project from cache
+			await _cache.RemoveAsync($"project:{id}");
+
+			return Ok($"Project with ID {id} has been marked as deleted.");
         }
 
         // PUT: api/projects/{projectsid}/assign
@@ -147,13 +151,28 @@ namespace freelance_marketplace_backend.Controllers
                 {
                     return NotFound("Project or proposal not found.");
                 }
-                // Invalidate the cache for the project after assignment
+
+
+                // Clear cash 
+                // 1- Invalidate the cache for the project after assignment
                 await _cache.RemoveAsync($"project:{projectId}");
 
-                // clear cash from avalible projects
+
+                //2- clear cash to avalible projects
                 var all_avalible_projects_cacheKey = "AvailableProjects";
                 await _cache.RemoveAsync(all_avalible_projects_cacheKey);
-                var message = $"Congratulations! Your Proposal has been accepted for the project Number: {projectId}";
+               
+                // 3- clear cash to user balance
+                var cacheKey = $"UserProfile_{uid}";
+                await _cache.RemoveAsync(cacheKey);
+
+               
+                // 4- clear cash from approved projects
+                string approved_projects_cacheKey = $"approved_projects_{uid}";
+                 await _cache.RemoveAsync(approved_projects_cacheKey);
+
+		        		var message = $"Congratulations! Your Proposal has been accepted for the project Number: {projectId}";
+
 
                 await _twilioService.SendSmsAsync(model.FreelancerPhoneNumber, message);
                 // Return the updated project details
