@@ -1,16 +1,16 @@
-using Moq;
 using System;
 using System.Collections.Generic;
+using System.Text;
+using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Distributed;
 using freelance_marketplace_backend.Controllers;
 using freelance_marketplace_backend.Interfaces;
 using freelance_marketplace_backend.Models.Dtos;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Distributed;
+using Moq;
 using Xunit;
-using System.Text.Json;
-using System.Threading;
-using System.Text;
 
 namespace freelance_marketplace_backend.Tests.Controllers
 {
@@ -41,11 +41,12 @@ namespace freelance_marketplace_backend.Tests.Controllers
             var projectDetails = new ProjectDetailsDto
             {
                 ProjectId = projectId,
-                Title = "Test Project"
+                Title = "Test Project",
             };
             var cachedProject = JsonSerializer.Serialize(projectDetails);
-            
-            _mockCache.Setup(c => c.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+
+            _mockCache
+                .Setup(c => c.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Encoding.UTF8.GetBytes(cachedProject));
 
             // Act
@@ -62,12 +63,14 @@ namespace freelance_marketplace_backend.Tests.Controllers
         {
             // Arrange
             int projectId = 999;
-            
-            _mockCache.Setup(c => c.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+
+            _mockCache
+                .Setup(c => c.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync((byte[]?)null);
-                
+
             // استخدم ReturnsAsync مع Task.FromResult لتجنب التحذير
-            _mockProjectService.Setup(s => s.GetProjectDetailsAsync(It.IsAny<int>()))
+            _mockProjectService
+                .Setup(s => s.GetProjectDetailsAsync(It.IsAny<int>()))
                 .Returns(Task.FromResult<ProjectDetailsDto?>(null));
 
             // Act
@@ -88,7 +91,7 @@ namespace freelance_marketplace_backend.Tests.Controllers
                 FreelancerId = "freelancer1",
                 ProposedAmount = 500,
                 Deadline = DateTime.Now.AddDays(7),
-                CoverLetter = "Proposal cover letter"
+                CoverLetter = "Proposal cover letter",
             };
             var proposal = new ProposalDto
             {
@@ -100,10 +103,11 @@ namespace freelance_marketplace_backend.Tests.Controllers
                 Deadline = DateOnly.FromDateTime(proposalDto.Deadline),
                 CoverLetter = proposalDto.CoverLetter,
                 Status = "Pending",
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
             };
 
-            _mockProposalService.Setup(s => s.SubmitProposalAsync(projectId, proposalDto))
+            _mockProposalService
+                .Setup(s => s.SubmitProposalAsync(projectId, proposalDto))
                 .ReturnsAsync(proposal);
 
             // Act
@@ -126,9 +130,10 @@ namespace freelance_marketplace_backend.Tests.Controllers
                 FreelancerId = "freelancer1",
                 ProposedAmount = 500,
                 Deadline = DateTime.Now.AddDays(7),
-                CoverLetter = "Proposal cover letter"
+                CoverLetter = "Proposal cover letter",
             };
-            _mockProposalService.Setup(s => s.SubmitProposalAsync(projectId, proposalDto))
+            _mockProposalService
+                .Setup(s => s.SubmitProposalAsync(projectId, proposalDto))
                 .ThrowsAsync(new KeyNotFoundException("Project not found."));
 
             // Act
@@ -155,10 +160,11 @@ namespace freelance_marketplace_backend.Tests.Controllers
                     Deadline = DateOnly.FromDateTime(DateTime.Now.AddDays(7)),
                     CoverLetter = "Proposal cover letter",
                     Status = "Pending",
-                    CreatedAt = DateTime.UtcNow
-                }
+                    CreatedAt = DateTime.UtcNow,
+                },
             };
-            _mockProposalService.Setup(s => s.GetProposalsByFreelancerIdAsync(freelancerId))
+            _mockProposalService
+                .Setup(s => s.GetProposalsByFreelancerIdAsync(freelancerId))
                 .ReturnsAsync(proposals);
 
             // Act
@@ -176,7 +182,8 @@ namespace freelance_marketplace_backend.Tests.Controllers
             // Arrange
             int proposalId = 1;
             string freelancerId = "freelancer1";
-            _mockProposalService.Setup(s => s.DeleteProposalAsync(proposalId, freelancerId))
+            _mockProposalService
+                .Setup(s => s.DeleteProposalAsync(proposalId, freelancerId))
                 .ReturnsAsync(true);
 
             // Act
@@ -193,7 +200,8 @@ namespace freelance_marketplace_backend.Tests.Controllers
             // Arrange
             int proposalId = 999;
             string freelancerId = "freelancer1";
-            _mockProposalService.Setup(s => s.DeleteProposalAsync(proposalId, freelancerId))
+            _mockProposalService
+                .Setup(s => s.DeleteProposalAsync(proposalId, freelancerId))
                 .ReturnsAsync(false);
 
             // Act
@@ -201,6 +209,34 @@ namespace freelance_marketplace_backend.Tests.Controllers
 
             // Assert
             Assert.IsType<NotFoundObjectResult>(result);
+        }
+
+        [Fact]
+        public async Task DeleteProposal_ReturnsBadRequest_WhenProposalIsAccepted()
+        {
+            // Arrange
+            int proposalId = 1;
+            string freelancerId = "freelancer1";
+
+            _mockProposalService
+                .Setup(s => s.DeleteProposalAsync(proposalId, freelancerId))
+                .ThrowsAsync(
+                    new InvalidOperationException("Accepted proposals cannot be deleted.")
+                );
+
+            // Act
+            var result = await _controller.DeleteProposal(proposalId, freelancerId);
+
+            // Assert
+            var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+            var response = badRequestResult.Value;
+            var messageProperty = response
+                ?.GetType()
+                .GetProperty("message")
+                ?.GetValue(response)
+                ?.ToString();
+
+            Assert.Equal("Accepted proposals cannot be deleted.", messageProperty);
         }
     }
 }

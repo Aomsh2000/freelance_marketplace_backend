@@ -6,6 +6,8 @@ using freelance_marketplace_backend.Models.Entities;
 using global::freelance_marketplace_backend.Models.Dtos;
 using global::freelance_marketplace_backend.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
+using Pipelines.Sockets.Unofficial.Arenas;
 
 namespace freelance_marketplace_backend.Services
 {
@@ -15,11 +17,13 @@ namespace freelance_marketplace_backend.Services
         public class ProposalService : IProposalService
         {
             private readonly FreelancingPlatformContext _context;
+			private readonly IDistributedCache _cache;
 
-            public ProposalService(FreelancingPlatformContext context)
+			public ProposalService(FreelancingPlatformContext context, IDistributedCache cache)
             {
                 _context = context;
-            }
+				_cache = cache;
+			}
 
             // Submits a proposal for a specific project and returns the created proposal with freelancer info.
             public async Task<ProposalDto> SubmitProposalAsync(
@@ -33,7 +37,8 @@ namespace freelance_marketplace_backend.Services
                     throw new KeyNotFoundException("Project not found.");
                 }
 
-                DateOnly deadlineDateOnly = DateOnly.FromDateTime(proposalDto.Deadline);
+			
+				DateOnly deadlineDateOnly = DateOnly.FromDateTime(proposalDto.Deadline);
 
                 // Create a new Proposal
                 var proposal = new Proposal
@@ -80,7 +85,7 @@ namespace freelance_marketplace_backend.Services
             {
                 var proposals = await _context
                     .Proposals.Include(p => p.Freelancer)
-                    .Include(p => p.Project) 
+                    .Include(p => p.Project)
                     .Where(p =>
                         p.FreelancerId == freelancerId
                         && (p.IsDeleted == null || p.IsDeleted == false)
@@ -107,19 +112,28 @@ namespace freelance_marketplace_backend.Services
             }
 
             public async Task<bool> DeleteProposalAsync(int proposalId, string freelancerId)
-            {
-                var proposal = await _context.Proposals.FirstOrDefaultAsync(p =>
-                    p.ProposalId == proposalId && p.FreelancerId == freelancerId
-                );
+{
+    var proposal = await _context.Proposals.FirstOrDefaultAsync(p =>
+        p.ProposalId == proposalId &&
+        p.FreelancerId == freelancerId &&
+        (p.IsDeleted == null || p.IsDeleted == false)
+    );
 
-                if (proposal == null)
-                    return false;
 
-                proposal.IsDeleted = true;
-                await _context.SaveChangesAsync();
+    if (proposal == null)
+        return false;
 
-                return true;
-            }
-        }
+    // Prevent deletion if status is "Accepted"
+    if (proposal.Status.Equals("Accepted", StringComparison.OrdinalIgnoreCase))
+        throw new InvalidOperationException("Accepted proposals cannot be deleted.");
+
+    proposal.IsDeleted = true;
+    await _context.SaveChangesAsync();
+
+    return true;
+}
+
+
     }
+}
 }
