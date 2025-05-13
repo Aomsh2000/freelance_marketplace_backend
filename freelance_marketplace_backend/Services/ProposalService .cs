@@ -80,7 +80,7 @@ namespace freelance_marketplace_backend.Services
             {
                 var proposals = await _context
                     .Proposals.Include(p => p.Freelancer)
-                    .Include(p => p.Project) 
+                    .Include(p => p.Project)
                     .Where(p =>
                         p.FreelancerId == freelancerId
                         && (p.IsDeleted == null || p.IsDeleted == false)
@@ -107,19 +107,26 @@ namespace freelance_marketplace_backend.Services
             }
 
             public async Task<bool> DeleteProposalAsync(int proposalId, string freelancerId)
-            {
-                var proposal = await _context.Proposals.FirstOrDefaultAsync(p =>
-                    p.ProposalId == proposalId && p.FreelancerId == freelancerId
-                );
+{
+    var proposal = await _context.Proposals.FirstOrDefaultAsync(p =>
+        p.ProposalId == proposalId &&
+        p.FreelancerId == freelancerId &&
+        (p.IsDeleted == null || p.IsDeleted == false)
+    );
 
-                if (proposal == null)
-                    return false;
+    if (proposal == null)
+        return false;
 
-                proposal.IsDeleted = true;
-                await _context.SaveChangesAsync();
+    // Prevent deletion if status is "Accepted"
+    if (proposal.Status.Equals("Accepted", StringComparison.OrdinalIgnoreCase))
+        throw new InvalidOperationException("Accepted proposals cannot be deleted.");
 
-                return true;
-            }
-        }
+    proposal.IsDeleted = true;
+    await _context.SaveChangesAsync();
+
+    return true;
+}
+
     }
+}
 }
