@@ -157,15 +157,22 @@ namespace freelance_marketplace_backend.Controllers
                 // 1- Invalidate the cache for the project after assignment
                 await _cache.RemoveAsync($"project:{projectId}");
 
-                // 2- clear cash from avalible projects
+
+                //2- clear cash to avalible projects
                 var all_avalible_projects_cacheKey = "AvailableProjects";
                 await _cache.RemoveAsync(all_avalible_projects_cacheKey);
+               
+                // 3- clear cash to user balance
+                var cacheKey = $"UserProfile_{uid}";
+                await _cache.RemoveAsync(cacheKey);
 
-				// 3- clear cash from approved projects
-				string cacheKey = $"approved_projects_{uid}";
-				 await _cache.RemoveAsync(cacheKey);
+               
+                // 4- clear cash from approved projects
+                string cacheKey = $"approved_projects_{uid}";
+                 await _cache.RemoveAsync(cacheKey);
 
-				var message = $"Congratulations! Your Proposal has been accepted for the project Number: {projectId}";
+		        		var message = $"Congratulations! Your Proposal has been accepted for the project Number: {projectId}";
+
 
                 await _twilioService.SendSmsAsync(model.FreelancerPhoneNumber, message);
                 // Return the updated project details

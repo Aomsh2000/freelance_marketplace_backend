@@ -1,5 +1,6 @@
 ﻿using freelance_marketplace_backend.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace freelance_marketplace_backend.Data.Repositories
 {
@@ -7,10 +8,11 @@ namespace freelance_marketplace_backend.Data.Repositories
     {
 
         private readonly FreelancingPlatformContext _context;
-
-        public ClientProjectRepository(FreelancingPlatformContext context)
+        private readonly IDistributedCache _cache;
+        public ClientProjectRepository(FreelancingPlatformContext context, IDistributedCache cache)
         {
             _context = context;
+            _cache = cache;
         }
 
         public async Task<List<Project>> GetApprovedProjectsForClientAsync(string clientId)
@@ -35,7 +37,9 @@ namespace freelance_marketplace_backend.Data.Repositories
             _context.Projects.Update(project);
             _context.Users.Update(freelancer);
             await _context.SaveChangesAsync();
-
+            // clear cash to user balance
+            var usercacheKey = $"UserProfile_{project.FreelancerId}";
+            await _cache.RemoveAsync(usercacheKey);
             return true;
         }
 
