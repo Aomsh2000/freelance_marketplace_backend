@@ -25,61 +25,69 @@ namespace freelance_marketplace_backend.Services
 				_cache = cache;
 			}
 
-            // Submits a proposal for a specific project and returns the created proposal with freelancer info.
-            public async Task<ProposalDto> SubmitProposalAsync(
-                int projectId,
-                CreateProposalDto proposalDto
-            )
-            {
-                var project = await _context.Projects.FindAsync(projectId);
-                if (project == null)
-                {
-                    throw new KeyNotFoundException("Project not found.");
-                }
+			// Submits a proposal for a specific project and returns the created proposal with freelancer info.
+		
+			public async Task<ProposalDto> SubmitProposalAsync(int projectId, CreateProposalDto proposalDto)
+			{
+				var project = await _context.Projects.FirstOrDefaultAsync(p => p.ProjectId == projectId);
 
-			
+				if (project == null)
+					throw new KeyNotFoundException("Project not found.");
+
+				// Verify project status "Open"
+				if (!project.Status.Equals("Open", StringComparison.OrdinalIgnoreCase))
+					throw new InvalidOperationException("You can only submit proposals to projects with status 'Open'.");
+
+				//  Check if there is a previous proposal for the same freelancer and it has not been deleted
+				var existingProposal = await _context.Proposals.FirstOrDefaultAsync(p =>
+					p.ProjectId == projectId &&
+					p.FreelancerId == proposalDto.FreelancerId &&
+					(p.IsDeleted == null || p.IsDeleted == false)
+				);
+
+				if (existingProposal != null)
+					throw new InvalidOperationException("You have already submitted a proposal for this project. Please delete the existing one before submitting a new proposal.");
+
+				// Create a new proposal
 				DateOnly deadlineDateOnly = DateOnly.FromDateTime(proposalDto.Deadline);
 
-                // Create a new Proposal
-                var proposal = new Proposal
-                {
-                    ProjectId = projectId,
-                    FreelancerId = proposalDto.FreelancerId,
-                    ProposedAmount = proposalDto.ProposedAmount,
-                    Deadline = deadlineDateOnly,
-                    CoverLetter = proposalDto.CoverLetter,
-                    Status = "Pending", // Initial status is Pending
-                    CreatedAt = DateTime.UtcNow,
-                };
+				var proposal = new Proposal
+				{
+					ProjectId = projectId,
+					FreelancerId = proposalDto.FreelancerId,
+					ProposedAmount = proposalDto.ProposedAmount,
+					Deadline = deadlineDateOnly,
+					CoverLetter = proposalDto.CoverLetter,
+					Status = "Pending",
+					CreatedAt = DateTime.UtcNow,
+				};
 
-                _context.Proposals.Add(proposal);
-                await _context.SaveChangesAsync();
+				_context.Proposals.Add(proposal);
+				await _context.SaveChangesAsync();
 
-                // After saving, we fetch the offer with its associated freelancer information.
-                var proposalWithFreelancer = await _context
-                    .Proposals.Include(p => p.Freelancer)
-                    .FirstOrDefaultAsync(p => p.ProposalId == proposal.ProposalId);
+				var proposalWithFreelancer = await _context
+					.Proposals.Include(p => p.Freelancer)
+					.FirstOrDefaultAsync(p => p.ProposalId == proposal.ProposalId);
 
-                var freelancerName = proposalWithFreelancer?.Freelancer?.Name ?? "Unknown";
+				var freelancerName = proposalWithFreelancer?.Freelancer?.Name ?? "Unknown";
 
-                var proposalDtoResult = new ProposalDto
-                {
-                    ProposalId = proposal.ProposalId,
-                    ProjectId = proposal.ProjectId,
-                    FreelancerId = proposal.FreelancerId,
-                    FreelancerName = freelancerName,
-                    ProposedAmount = proposal.ProposedAmount,
-                    freelancerPhoneNumber = proposal.Freelancer.Phone,
-                    Deadline = proposal.Deadline,
-                    CoverLetter = proposal.CoverLetter,
-                    Status = proposal.Status,
-                    CreatedAt = proposal.CreatedAt ?? DateTime.MinValue,
-                };
+				return new ProposalDto
+				{
+					ProposalId = proposal.ProposalId,
+					ProjectId = proposal.ProjectId,
+					FreelancerId = proposal.FreelancerId,
+					FreelancerName = freelancerName,
+					freelancerPhoneNumber = proposal.Freelancer.Phone,
+					ProposedAmount = proposal.ProposedAmount,
+					Deadline = proposal.Deadline,
+					CoverLetter = proposal.CoverLetter,
+					Status = proposal.Status,
+					ProjectTitle= proposal.Project.Title,
+					CreatedAt = proposal.CreatedAt ?? DateTime.MinValue,
+				};
+			}
 
-                return proposalDtoResult;
-            }
-
-            public async Task<IEnumerable<ProposalDto>> GetProposalsByFreelancerIdAsync(
+			public async Task<IEnumerable<ProposalDto>> GetProposalsByFreelancerIdAsync(
                 string freelancerId
             )
             {

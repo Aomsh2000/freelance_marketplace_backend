@@ -102,7 +102,11 @@ namespace freelance_marketplace_backend.Controllers
             {
                 return NotFound("Project not found.");
             }
-            catch (Exception ex)
+			catch (InvalidOperationException ex)
+			{
+				return Conflict(ex.Message); 
+			}
+			catch (Exception ex)
             {
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
