@@ -3,10 +3,10 @@ using freelance_marketplace_backend.Data;
 using freelance_marketplace_backend.Interfaces;
 using freelance_marketplace_backend.Models.Dtos;
 using freelance_marketplace_backend.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.AspNetCore.Authorization;
 
 namespace freelance_marketplace_backend.Controllers
 {
@@ -136,13 +136,19 @@ namespace freelance_marketplace_backend.Controllers
                 var result = await _proposalService.DeleteProposalAsync(proposalId, freelancerId);
                 if (!result)
                 {
-                    return NotFound("Proposal not found or does not belong to this freelancer.");
+                    return NotFound(
+                        new
+                        {
+                            message = "Proposal not found or does not belong to this freelancer.",
+                        }
+                    );
                 }
-                return Ok("Proposal deleted successfully.");
+
+                return Ok(new { message = "Proposal deleted successfully." });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
             }
         }
     }
