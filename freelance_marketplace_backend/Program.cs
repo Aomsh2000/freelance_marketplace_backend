@@ -139,10 +139,18 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<ChatHub>("/chatHub");
 //  Add this to support Render environment
-var portEnv = Environment.GetEnvironmentVariable("PORT");
-if (int.TryParse(portEnv, out var port))
+try
 {
-    app.Urls.Add($"http://*:{port}");
-}
+    var port = Environment.GetEnvironmentVariable("PORT");
+    if (!string.IsNullOrEmpty(port))
+    {
+        app.Urls.Add($"http://*:{port}");
+    }
 
-app.Run();
+    Console.WriteLine(" Before app.Run()");
+    app.Run();
+}
+catch (Exception ex)
+{
+    Console.WriteLine($" ERROR DURING STARTUP: {ex}");
+}
