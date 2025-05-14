@@ -101,6 +101,7 @@ namespace freelance_marketplace_backend.Services
                     FreelancerId = chat.FreelancerId,
                     StartedAt = chat.StartedAt,
                     OtherUserName = otherUser?.Name,
+                    OtherUserImageUrl = otherUser?.ImageUrl ?? "https://www.svgrepo.com/show/384670/account-avatar-profile-user.svg", // Add this line
                     LastMessage = lastMessage?.Content,
                     LastMessageTime = lastMessage?.SentAt,
                     LastMessageSenderId = lastMessage?.SenderId,
