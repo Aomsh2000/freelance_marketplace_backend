@@ -16,13 +16,14 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy(
         "AllowAngularApp",
-        policy =>
-        {
-            policy.AllowAnyOrigin()
-                  .AllowAnyMethod()
-                  .AllowAnyHeader()
-                  .AllowCredentials(); // Added this line to allow credentials
-        }
+         policy =>
+         {
+             policy.WithOrigins("https://freelance-frontend.onrender.com") //
+                   .SetIsOriginAllowed(origin => true) //
+                   .AllowAnyMethod()
+                   .AllowAnyHeader()
+                   .AllowCredentials();
+         }
     );
 });
 
