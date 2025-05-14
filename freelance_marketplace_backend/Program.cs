@@ -16,16 +16,18 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy(
         "AllowAngularApp",
-         policy =>
-         {
-             policy.WithOrigins("https://freelance-frontend.onrender.com") //
-                   .SetIsOriginAllowed(origin => true) //
-                   .AllowAnyMethod()
-                   .AllowAnyHeader()
-                   .AllowCredentials();
-         }
+        policy =>
+        {
+            //S3 url
+            policy.WithOrigins("http://freelancerfrontend.s3-website.eu-north-1.amazonaws.com") //
+                  .SetIsOriginAllowed(origin => true)
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
+        }
     );
 });
+
 
 //Stripe configuration
 //Retrieve the Stripe API keys from appsettings.json
