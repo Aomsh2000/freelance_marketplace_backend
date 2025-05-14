@@ -45,6 +45,10 @@ namespace freelance_marketplace_backend.Controllers
         {
             try
             {
+                if (request.ClientId == request.FreelancerId)
+                {
+                    return BadRequest("You cannot create a chat with yourself.");
+                }
                 // Verify user is either the client or freelancer
                 var uid = User.FindFirst("user_id")?.Value;
                 if (uid != request.ClientId && uid != request.FreelancerId)
