@@ -67,6 +67,7 @@ namespace freelance_marketplace_backend.Services
 					freelancerPhoneNumber = pr.Freelancer.Phone,
 					Deadline = pr.Deadline,
 					CoverLetter = pr.CoverLetter,
+					ProfilePictureUrl=pr.Freelancer.ImageUrl,
 					Status = pr.Status,
 					ProjectTitle = pr.Project.Title,
 					CreatedAt = pr.CreatedAt ?? DateTime.MinValue,
