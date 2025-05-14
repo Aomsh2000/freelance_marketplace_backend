@@ -21,8 +21,7 @@ builder.Services.AddCors(options =>
             //S3 url
             policy.WithOrigins("http://freelancerfrontend.s3-website.eu-north-1.amazonaws.com") //
                   .AllowAnyMethod()
-                  .AllowAnyHeader()
-                  .AllowCredentials();
+                  .AllowAnyHeader();
         }
     );
 });
