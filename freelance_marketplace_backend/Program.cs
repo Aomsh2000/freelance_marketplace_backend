@@ -19,7 +19,10 @@ builder.Services.AddCors(options =>
         policy =>
         {
             //S3 url
-            policy.WithOrigins("https://freelancerfrontend.s3-website.eu-north-1.amazonaws.com")
+            policy.WithOrigins(
+                 "http://freelancerfrontend.s3-website.eu-north-1.amazonaws.com",
+                 "https://freelancerfrontend.s3-website.eu-north-1.amazonaws.com"
+                )
                    .AllowAnyMethod()
                    .AllowAnyHeader()
                    .AllowCredentials();
@@ -136,7 +139,7 @@ if (app.Environment.IsDevelopment())
 // Enable CORS before routing and authorization
 app.UseCors("AllowAngularApp");
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
