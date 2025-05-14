@@ -18,7 +18,7 @@ builder.Services.AddCors(options =>
         "AllowAngularApp",
         policy =>
         {
-            policy.WithOrigins("http://localhost:4200")
+            policy.AllowAnyOrigin()
                   .AllowAnyMethod()
                   .AllowAnyHeader()
                   .AllowCredentials(); // Added this line to allow credentials
@@ -51,7 +51,7 @@ builder.Services.AddDbContext<FreelancingPlatformContext>(options =>
     )
 );
 
-builder.Configuration.AddUserSecrets<Program>();
+//builder.Configuration.AddUserSecrets<Program>();
 
 // Get the Redis connection string from configuration
 var redisConnectionString = builder.Configuration.GetConnectionString("RedisConnection");
