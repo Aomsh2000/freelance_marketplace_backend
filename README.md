@@ -97,8 +97,7 @@ Update appsettings.json with your own configuration:
   }
 }
 ```
-3. **Run the application**
-<pre> ```dotnet run``` </pre>
+3. **Run the application**   <pre> ```dotnet run``` </pre>
 
 4. **Visit Swagger UI**
 Access the API documentation at:
