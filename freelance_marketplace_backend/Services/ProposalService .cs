@@ -58,6 +58,7 @@ namespace freelance_marketplace_backend.Services
 					ProposedAmount = proposalDto.ProposedAmount,
 					Deadline = deadlineDateOnly,
 					CoverLetter = proposalDto.CoverLetter,
+
 					Status = "Pending",
 					CreatedAt = DateTime.UtcNow,
 				};
@@ -83,6 +84,7 @@ namespace freelance_marketplace_backend.Services
 					CoverLetter = proposal.CoverLetter,
 					Status = proposal.Status,
 					ProjectTitle= proposal.Project.Title,
+					ProfilePictureUrl = proposal.Freelancer.ImageUrl,
 					CreatedAt = proposal.CreatedAt ?? DateTime.MinValue,
 				};
 			}
