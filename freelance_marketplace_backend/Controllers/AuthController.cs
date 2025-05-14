@@ -130,5 +130,65 @@ namespace freelance_marketplace_backend.Controllers
 
             return Ok(new { message = "Balance updated successfully.", newBalance = user.Balance });
         }
+
+        [Authorize]
+        [HttpPut("users/profile")]
+        public async Task<IActionResult> EditProfile([FromBody] EditProfileDto editDto)
+        {
+
+            //Get userID from token and check if it exists
+            var userId = User.FindFirst("user_id")?.Value;
+            if (userId == null)
+                return Unauthorized();
+
+
+            // Get user from database
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Usersid == userId && (u.IsDeleted == null || u.IsDeleted == false));
+
+            if (user == null)
+                return NotFound("User not found.");
+
+            // edit user profile
+            user.Name = editDto.Name;
+            user.Phone = editDto.Phone;
+            user.ImageUrl = editDto.ImageUrl;
+            user.AboutMe = editDto.AboutMe;
+
+            // remove existing skills
+            var existingSkills = _context.UsersSkills.Where(us => us.Usersid == userId);
+            _context.UsersSkills.RemoveRange(existingSkills);
+
+            // Add new skills
+            var validSkills = new List<UsersSkill>();
+            if (editDto.Skills != null && editDto.Skills.Any())
+            {
+                foreach (var skill in editDto.Skills)
+                {
+                    var skillExists = await _context.Skills.AnyAsync(s => s.SkillId == skill.SkillId);
+                    if (!skillExists)
+                    {
+                        return BadRequest($"Skill with ID {skill.SkillId} does not exist.");
+                    }
+
+                    validSkills.Add(new UsersSkill
+                    {
+                        Usersid = userId,
+                        SkillId = skill.SkillId
+                    });
+                }
+
+                await _context.UsersSkills.AddRangeAsync(validSkills);
+            }
+
+            await _context.SaveChangesAsync();
+
+            //remove cache
+            var cacheKey = $"UserProfile_{userId}";
+            await _cache.RemoveAsync(cacheKey);
+
+            return NoContent();
+        }
+
     }
 }

@@ -45,7 +45,9 @@ namespace freelance_marketplace_backend.Services
                 Freelancer = new FreelancerDto
                 {
                     FreelancerId = p.FreelancerId,
-                    FreelancerName = p.Freelancer.Name
+                    FreelancerName = p.Freelancer.Name,
+                    FreelancerImage=p.Freelancer.ImageUrl
+
                 }
             }).ToList();
 
@@ -72,6 +74,8 @@ namespace freelance_marketplace_backend.Services
                 {
                     string cacheKey = $"approved_projects_{userId}";
                     await _cache.RemoveAsync(cacheKey); // Clear cache for this user
+
+                   
                 }
             }
             return success;

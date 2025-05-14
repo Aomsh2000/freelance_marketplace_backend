@@ -1,26 +1,29 @@
 using freelance_marketplace_backend.Data;
 using freelance_marketplace_backend.Data.Repositories;
+using freelance_marketplace_backend.Hubs;
 using freelance_marketplace_backend.Interfaces;
+using freelance_marketplace_backend.Models;
 using freelance_marketplace_backend.Services;
 using freelance_marketplace_backend.Services.freelance_marketplace_backend.Services;
-
+using Microsoft.EntityFrameworkCore;
 using Stripe;
-using freelance_marketplace_backend.Models;
 
 using Microsoft.EntityFrameworkCore;
 using Bugsnag.AspNet.Core;
 
-
 var builder = WebApplication.CreateBuilder(args);
 
-// Add CORS policy
+// Add CORS policy with credentials support
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(
         "AllowAngularApp",
         policy =>
         {
-            policy.WithOrigins("http://localhost:4200").AllowAnyMethod().AllowAnyHeader();
+            policy.WithOrigins("http://localhost:4200")
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials(); // Added this line to allow credentials
         }
     );
 });
@@ -74,6 +77,13 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.Configuration = redisConnectionString;
     options.InstanceName = "FreelancerMarketplace_";
 });
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = true;
+    options.MaximumReceiveMessageSize = 102400;
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
+    options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+});
 
 //Twilio - Register the Service
 builder.Services.Configure<TwilioSettings>(builder.Configuration.GetSection("Twilio"));
@@ -83,10 +93,10 @@ builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ClientProjectRepository>();
 builder.Services.AddScoped<IClientProjectService, ClientProjectService>();
-
+builder.Services.AddScoped<ChatRepository>();
 builder.Services.AddScoped<IProposalService, ProposalService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
-
+builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<ProjectRepository>();
 
 builder.Services.AddControllers();
@@ -136,5 +146,5 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-
+app.MapHub<ChatHub>("/chatHub");
 app.Run();

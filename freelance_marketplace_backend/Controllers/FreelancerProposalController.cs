@@ -110,7 +110,11 @@ namespace freelance_marketplace_backend.Controllers
                 _bugsnag.Notify(ex);
                 return NotFound("Project not found.");
             }
-            catch (Exception ex)
+			catch (InvalidOperationException ex)
+			{
+				return Conflict(ex.Message); 
+			}
+			catch (Exception ex)
             {
                 _bugsnag.Notify(ex);
                 return StatusCode(500, $"Internal server error: {ex.Message}");
@@ -142,7 +146,10 @@ namespace freelance_marketplace_backend.Controllers
         {
             try
             {
+
                 var result = await _proposalService.DeleteProposalAsync(proposalId, freelancerId);
+
+
                 if (!result)
                 {
                     return NotFound(
@@ -152,8 +159,12 @@ namespace freelance_marketplace_backend.Controllers
                         }
                     );
                 }
-
-                return Ok(new { message = "Proposal deleted successfully." });
+				
+				return Ok(new { message = "Proposal deleted successfully." });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
