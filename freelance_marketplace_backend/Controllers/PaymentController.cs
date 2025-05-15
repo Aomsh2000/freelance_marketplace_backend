@@ -38,8 +38,8 @@ namespace freelance_marketplace_backend.Controllers
         }
       },
                 Mode = "payment",
-                SuccessUrl = $"http://localhost:4200/payment?success=true&amount={req.Amount}",
-                CancelUrl = "http://localhost:4200/payment?canceled=true"
+                SuccessUrl = $"http://freelancerfrontend.s3-website.eu-north-1.amazonaws.com/payment?success=true&amount={req.Amount}",
+                CancelUrl = "http://freelancerfrontend.s3-website.eu-north-1.amazonaws.com/payment?canceled=true"
             };
             var service = new SessionService();
             var session = service.Create(options);
