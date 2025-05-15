@@ -43,6 +43,7 @@ namespace freelance_marketplace_backend.Services
 					Deadline = p.Deadline,
 					ClientId = p.PostedBy,
 					ClientName = p.PostedByNavigation.Name,
+					Status=p.Status,
 					Skills = p.ProjectSkills.Select(ps => ps.Skill.Skill1).ToList(),
 					
 					Proposals = new List<ProposalDto>()
@@ -66,6 +67,7 @@ namespace freelance_marketplace_backend.Services
 					freelancerPhoneNumber = pr.Freelancer.Phone,
 					Deadline = pr.Deadline,
 					CoverLetter = pr.CoverLetter,
+					ProfilePictureUrl=pr.Freelancer.ImageUrl,
 					Status = pr.Status,
 					ProjectTitle = pr.Project.Title,
 					CreatedAt = pr.CreatedAt ?? DateTime.MinValue,
