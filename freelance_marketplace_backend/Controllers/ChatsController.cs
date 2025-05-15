@@ -117,7 +117,7 @@ namespace freelance_marketplace_backend.Controllers
 
         [HttpPost("{chatId}/messages")]
         public async Task<ActionResult<MessageDTO>> SendMessage(
-            int chatId, SendMessageDTO request)
+    int chatId, SendMessageDTO request)
         {
             try
             {
@@ -128,7 +128,15 @@ namespace freelance_marketplace_backend.Controllers
                     return Unauthorized("You are not authorized to send messages as this user.");
                 }
 
+                // Send message through the service
                 var message = await _chatService.SendMessageAsync(chatId, request);
+
+                // Ensure the timestamp in the returned DTO is in UTC format
+                if (message.SentAt.HasValue)
+                {
+                    // Convert to UTC if it's not already
+                    message.SentAt = message.SentAt.Value.ToUniversalTime();
+                }
 
                 // Invalidate chat messages cache
                 await _cache.RemoveAsync($"chat_messages_{chatId}");

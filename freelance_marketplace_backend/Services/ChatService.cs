@@ -122,7 +122,7 @@ namespace freelance_marketplace_backend.Services
                     throw new UnauthorizedAccessException("User is not a participant in this chat");
                 }
 
-                // Create message
+                // Create message with explicit UTC time
                 var message = await _chatRepository.CreateMessageAsync(chatId, request.SenderId, request.Content);
 
                 // Get chat info to identify other users
@@ -135,7 +135,7 @@ namespace freelance_marketplace_backend.Services
                     ChatId = message.ChatId,
                     SenderId = message.SenderId,
                     Content = message.Content,
-                    SentAt = message.SentAt,
+                    SentAt = message.SentAt, // Ensure UTC
                     IsFromMe = false  // Let the client set this based on their own identity
                 };
 
@@ -154,35 +154,6 @@ namespace freelance_marketplace_backend.Services
                 {
                     _logger.LogError(ex, $"Error broadcasting message to chat group {chatId}: {ex.Message}");
                 }
-
-                // Make multiple attempts to ensure delivery
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        // Wait briefly before re-sending to handle race conditions
-                        await Task.Delay(500);
-
-                        // Try again with group
-                        await _hubContext.Clients.Group(chatId.ToString())
-                            .SendAsync("ReceiveMessage", messageDto);
-
-                        _logger.LogInformation($"Re-broadcast message to chat group {chatId} after 500ms");
-
-                        // Wait a bit longer for any slow connections
-                        await Task.Delay(2000);
-
-                        // Try one more time to ensure delivery
-                        await _hubContext.Clients.Group(chatId.ToString())
-                            .SendAsync("ReceiveMessage", messageDto);
-
-                        _logger.LogInformation($"Final broadcast message to chat group {chatId} after 2.5s");
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, $"Error in delayed re-broadcasting: {ex.Message}");
-                    }
-                });
 
                 // The sender gets a different version with IsFromMe = true
                 messageDto.IsFromMe = true;
@@ -212,11 +183,15 @@ namespace freelance_marketplace_backend.Services
                 ChatId = m.ChatId,
                 SenderId = m.SenderId,
                 Content = m.Content,
-                SentAt = m.SentAt,
+                SentAt = m.SentAt, // Ensure UTC
                 IsFromMe = m.SenderId == userId
             }).ToList();
 
             return messageDtos;
+        }
+        public async Task<bool> IsUserInChatAsync(int chatId, string userId)
+        {
+            return await _chatRepository.IsUserInChatAsync(chatId, userId);
         }
     }
 }
