@@ -9,5 +9,7 @@ namespace freelance_marketplace_backend.Interfaces
         Task<List<ChatDTO>> GetUserChatsAsync(string userId);
         Task<MessageDTO> SendMessageAsync(int chatId, SendMessageDTO request);
         Task<List<MessageDTO>> GetChatMessagesAsync(int chatId, string userId);
+        Task<bool> IsUserInChatAsync(int chatId, string userId);
+
     }
 }

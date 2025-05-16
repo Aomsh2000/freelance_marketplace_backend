@@ -45,7 +45,9 @@ namespace freelance_marketplace_backend.Services
                 Freelancer = new FreelancerDto
                 {
                     FreelancerId = p.FreelancerId,
-                    FreelancerName = p.Freelancer.Name
+                    FreelancerName = p.Freelancer.Name,
+                    FreelancerImage=p.Freelancer.ImageUrl
+
                 }
             }).ToList();
 

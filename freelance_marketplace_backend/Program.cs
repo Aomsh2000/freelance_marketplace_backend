@@ -8,6 +8,8 @@ using freelance_marketplace_backend.Services.freelance_marketplace_backend.Servi
 using Microsoft.EntityFrameworkCore;
 using Stripe;
 
+using Microsoft.EntityFrameworkCore;
+using Bugsnag.AspNet.Core;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,6 +34,13 @@ StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];
 builder.Services.Configure<StripeSettings>(
   builder.Configuration.GetSection("Stripe")
 );
+
+// Bugsnag configuration
+var bugsnagAPI = builder.Configuration["Bugsnag:ApiKey"];
+builder.Services.AddBugsnag(configuration =>
+{
+    configuration.ApiKey = bugsnagAPI;
+});
 
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");

@@ -135,12 +135,10 @@ namespace freelance_marketplace_backend.Controllers
         [HttpPut("users/profile")]
         public async Task<IActionResult> EditProfile([FromBody] EditProfileDto editDto)
         {
-
-            //Get userID from token and check if it exists
+            // Get userID from token and check if it exists
             var userId = User.FindFirst("user_id")?.Value;
             if (userId == null)
                 return Unauthorized();
-
 
             // Get user from database
             var user = await _context.Users
@@ -149,13 +147,15 @@ namespace freelance_marketplace_backend.Controllers
             if (user == null)
                 return NotFound("User not found.");
 
-            // edit user profile
+            // Edit user profile
             user.Name = editDto.Name;
             user.Phone = editDto.Phone;
-            user.ImageUrl = editDto.ImageUrl;
+            user.ImageUrl = string.IsNullOrWhiteSpace(editDto.ImageUrl)
+                ? "https://www.svgrepo.com/show/384670/account-avatar-profile-user.svg"
+                : editDto.ImageUrl;
             user.AboutMe = editDto.AboutMe;
 
-            // remove existing skills
+            // Remove existing skills
             var existingSkills = _context.UsersSkills.Where(us => us.Usersid == userId);
             _context.UsersSkills.RemoveRange(existingSkills);
 
@@ -183,12 +183,11 @@ namespace freelance_marketplace_backend.Controllers
 
             await _context.SaveChangesAsync();
 
-            //remove cache
+            // Remove cache
             var cacheKey = $"UserProfile_{userId}";
             await _cache.RemoveAsync(cacheKey);
 
             return NoContent();
         }
-
     }
 }
